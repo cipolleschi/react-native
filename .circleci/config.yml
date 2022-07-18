@@ -52,7 +52,7 @@ references:
     gems_cache_key: &gems_cache_key v1-gems-{{ checksum "Gemfile.lock" }}
     gradle_cache_key: &gradle_cache_key v1-gradle-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "ReactAndroid/gradle.properties" }}
     hermes_cache_key: &hermes_cache_key v1-hermes-{{ .Environment.CIRCLE_JOB }}-{{ checksum "/tmp/hermes/hermesversion" }}
-    hermes_sdk_cache_key: &hermes_sdk_cache_key v1-hermes-{{ .Environment.CIRCLE_JOB }}-{{ checksum "sdks/.hermes-cache-key-file" }}
+    hermes_sdk_cache_key: &hermes_sdk_cache_key v1-hermes-{{ checksum "sdks/.hermes-cache-key-file" }}
     hermes_windows_cache_key: &hermes_windows_cache_key v1-hermes-{{ .Environment.CIRCLE_JOB }}-{{ checksum "tmp/hermes/hermesversion" }}
     pods_cache_key: &pods_cache_key v6-pods-{{ .Environment.CIRCLE_JOB }}-{{ checksum "packages/rn-tester/Podfile.lock.bak" }}-{{ checksum "packages/rn-tester/Podfile" }}
     windows_yarn_cache_key: &windows_yarn_cache_key v1-win-yarn-cache-{{ arch }}-{{ checksum "yarn.lock" }}
@@ -976,41 +976,43 @@ jobs:
           name: Install dependencies
           command: |
             brew install cmake
-      - run:
-          name: Build the Hermes iOS frameworks
-          command: |
-            cd ~/react-native/sdks/hermes
-            ./utils/build-ios-framework.sh
-      - run:
-          name: Build the Hermes Mac frameworks
-          command: |
-            cd ~/react-native/sdks/hermes
-            ./utils/build-mac-framework.sh
-            cp build_macosx/bin/hermesc /tmp/hermes/osx-bin/.
-      - run:
-          name: Package the Hermes Apple frameworks
-          command: |
-            cd ~/react-native/sdks/hermes
-            . ./utils/build-apple-framework.sh
+      - with_hermes_sdk_cache_span:
+          steps:
+            - run:
+                name: Build the Hermes iOS frameworks
+                command: |
+                  cd ~/react-native/sdks/hermes
+                  ./utils/build-ios-framework.sh
+            - run:
+                name: Build the Hermes Mac frameworks
+                command: |
+                  cd ~/react-native/sdks/hermes
+                  ./utils/build-mac-framework.sh
+                  cp build_macosx/bin/hermesc /tmp/hermes/osx-bin/.
+            - run:
+                name: Package the Hermes Apple frameworks
+                command: |
+                  cd ~/react-native/sdks/hermes
+                  . ./utils/build-apple-framework.sh
 
-            mkdir -p /tmp/cocoapods-package-root/destroot
-            mkdir -p /tmp/hermes/output
-            cp -R ./destroot /tmp/cocoapods-package-root
-            cp LICENSE /tmp/cocoapods-package-root
+                  mkdir -p /tmp/cocoapods-package-root/destroot
+                  mkdir -p /tmp/hermes/output
+                  cp -R ./destroot /tmp/cocoapods-package-root
+                  cp LICENSE /tmp/cocoapods-package-root
 
-            tar -C /tmp/cocoapods-package-root/ -czvf /tmp/hermes/output/hermes-runtime-darwin-v$(get_release_version).tar.gz .
+                  tar -C /tmp/cocoapods-package-root/ -czvf /tmp/hermes/output/hermes-runtime-darwin-v$(get_release_version).tar.gz .
 
-            mkdir -p /tmp/hermes/hermes-runtime-darwin
-            cp /tmp/hermes/output/hermes-runtime-darwin-v$(get_release_version).tar.gz /tmp/hermes/hermes-runtime-darwin/.
-      - save_cache:
-          key: *hermes_cache_key
-          paths:
-            - ~/react-native/hermes/build_host_hermesc
-            - ~/react-native/hermes/build_iphoneos
-            - ~/react-native/hermes/build_catalyst
-            - ~/react-native/hermes/build_iphonesimulator
-            - ~/react-native/hermes/build_macosx
-            - ~/react-native/hermes/destroot
+                  mkdir -p /tmp/hermes/hermes-runtime-darwin
+                  cp /tmp/hermes/output/hermes-runtime-darwin-v$(get_release_version).tar.gz /tmp/hermes/hermes-runtime-darwin/.
+            - save_cache:
+                key: *hermes_cache_key
+                paths:
+                  - ~/react-native/hermes/build_host_hermesc
+                  - ~/react-native/hermes/build_iphoneos
+                  - ~/react-native/hermes/build_catalyst
+                  - ~/react-native/hermes/build_iphonesimulator
+                  - ~/react-native/hermes/build_macosx
+                  - ~/react-native/hermes/destroot
       - store_artifacts:
           path: /tmp/hermes/hermes-runtime-darwin/
       - store_artifacts:
@@ -1296,9 +1298,13 @@ workflows:
       - test_ios_template:
           requires:
             - build_npm_package
-      - test_ios_rntester
+      - test_ios_rntester:
+          requires:
+            - build_hermes_macos
       - test_ios:
           run_unit_tests: true
+          requires:
+            - build_hermes_macos
       # DISABLED: USE_FRAMEWORKS=1 not supported by Flipper
       # - test_ios:
       #     name: test_ios_frameworks
