@@ -121,7 +121,7 @@ export interface ShadowStyleIOS {
   shadowRadius?: number | undefined;
 }
 
-interface PerpectiveTransform {
+interface PerspectiveTransform {
   perspective: AnimatableNumericValue;
 }
 
@@ -180,7 +180,7 @@ type MaximumOneOf<T, K extends keyof T = keyof T> = K extends keyof T
 export interface TransformsStyle {
   transform?:
     | MaximumOneOf<
-        PerpectiveTransform &
+        PerspectiveTransform &
           RotateTransform &
           RotateXTransform &
           RotateYTransform &
@@ -196,6 +196,8 @@ export interface TransformsStyle {
       >[]
     | string
     | undefined;
+  transformOrigin?: Array<string | number> | string | undefined;
+
   /**
    * @deprecated Use matrix in transform prop instead.
    */
@@ -339,6 +341,7 @@ export interface TextStyle extends TextStyleIOS, TextStyleAndroid, ViewStyle {
   textShadowOffset?: {width: number; height: number} | undefined;
   textShadowRadius?: number | undefined;
   textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase' | undefined;
+  userSelect?: 'auto' | 'none' | 'text' | 'contain' | 'all' | undefined;
 }
 
 /**

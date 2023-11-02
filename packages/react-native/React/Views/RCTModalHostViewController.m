@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#if !TARGET_OS_OSX // [macOS]
 #import "RCTModalHostViewController.h"
 
 #import "RCTLog.h"
@@ -70,3 +71,4 @@
 #endif // RCT_DEV
 
 @end
+#endif // [macOS]

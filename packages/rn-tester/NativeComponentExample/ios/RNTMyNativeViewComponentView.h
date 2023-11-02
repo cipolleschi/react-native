@@ -7,7 +7,7 @@
 
 #import <React/RCTComponent.h>
 #import <React/RCTViewComponentView.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -15,7 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, copy) RCTBubblingEventBlock onIntArrayChanged;
 
-- (UIColor *)UIColorFromHexString:(const std::string)hexString;
+- (RCTUIColor *)UIColorFromHexString:(const std::string)hexString;
 
 @end
 

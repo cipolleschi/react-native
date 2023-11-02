@@ -7,7 +7,11 @@
 
 #import <React/RCTFileRequestHandler.h>
 
+#if !TARGET_OS_OSX // [macOS]
 #import <MobileCoreServices/MobileCoreServices.h>
+#else // [macOS
+#import <CoreServices/CoreServices.h>
+#endif // macOS]
 
 #import <React/RCTUtils.h>
 #import <ReactCommon/RCTTurboModule.h>

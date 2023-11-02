@@ -23,7 +23,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
   vm_size_t page_size;
   vm_statistics_data_t vm_stat;
   kern_return_t kern;
-
   kern = host_page_size(host_port, &page_size);
   if (kern != KERN_SUCCESS)
     return 0;
@@ -49,7 +48,9 @@ static NSUInteger RCTDeviceFreeMemory(void)
 @property (nonatomic, strong) NSOperationQueue *fetchQueue;
 @property (nonatomic, strong) dispatch_semaphore_t lock;
 @property (nonatomic, assign) CGFloat animatedImageScale;
+#if !TARGET_OS_OSX // [macOS]
 @property (nonatomic, strong) CADisplayLink *displayLink;
+#endif // [macOS]
 
 @end
 
@@ -59,10 +60,12 @@ static NSUInteger RCTDeviceFreeMemory(void)
 {
   if (self = [super initWithFrame:frame]) {
     self.lock = dispatch_semaphore_create(1);
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didReceiveMemoryWarning:)
                                                  name:UIApplicationDidReceiveMemoryWarningNotification
                                                object:nil];
+#endif // [macOS]
   }
   return self;
 }
@@ -93,12 +96,12 @@ static NSUInteger RCTDeviceFreeMemory(void)
     return;
   }
 
+#if !TARGET_OS_OSX // [macOS]
   [self stop];
   [self resetAnimatedImage];
 
   if ([image respondsToSelector:@selector(animatedImageFrameAtIndex:)]) {
     NSUInteger animatedImageFrameCount = ((UIImage<RCTAnimatedImage> *)image).animatedImageFrameCount;
-
     // In case frame count is 0, there is no reason to continue.
     if (animatedImageFrameCount == 0) {
       return;
@@ -110,7 +113,7 @@ static NSUInteger RCTDeviceFreeMemory(void)
     // Get the current frame and loop count.
     self.totalLoopCount = self.animatedImage.animatedImageLoopCount;
 
-    self.animatedImageScale = image.scale;
+    self.animatedImageScale = UIImageGetScale(image); // [macOS]
 
     self.currentFrame = image;
 
@@ -124,11 +127,14 @@ static NSUInteger RCTDeviceFreeMemory(void)
     if ([self paused]) {
       [self start];
     }
-
+    
     [self.layer setNeedsDisplay];
   } else {
     super.image = image;
   }
+#else // [macOS
+  [super setImage:image];
+#endif // macOS]
 }
 
 #pragma mark - Private
@@ -150,6 +156,7 @@ static NSUInteger RCTDeviceFreeMemory(void)
   return _frameBuffer;
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (CADisplayLink *)displayLink
 {
   // We only need a displayLink in the case of animated images, so short-circuit this code and don't create one for most
@@ -198,7 +205,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
   NSUInteger totalFrameCount = self.totalFrameCount;
   NSUInteger currentFrameIndex = self.currentFrameIndex;
   NSUInteger nextFrameIndex = (currentFrameIndex + 1) % totalFrameCount;
-
   // Check if we have the frame buffer firstly to improve performance
   if (!self.bufferMiss) {
     // Then check if timestamp is reached
@@ -216,7 +222,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
       self.currentTime = nextDuration;
     }
   }
-
   // Update the current frame
   UIImage *currentFrame;
   UIImage *fetchFrame;
@@ -243,7 +248,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
   } else {
     self.bufferMiss = YES;
   }
-
   // Update the loop count when last frame rendered
   if (nextFrameIndex == 0 && !self.bufferMiss) {
     // Update the loop count
@@ -255,7 +259,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
       return;
     }
   }
-
   // Check if we should prefetch next frame or current frame
   NSUInteger fetchFrameIndex;
   if (self.bufferMiss) {
@@ -265,7 +268,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
     // Or, most cases, the decode speed is faster than render speed, we fetch next frame
     fetchFrameIndex = nextFrameIndex;
   }
-
   if (!fetchFrame && !bufferFull && self.fetchQueue.operationCount == 0) {
     // Prefetch next frame in background queue
     UIImage<RCTAnimatedImage> *animatedImage = self.animatedImage;
@@ -308,13 +310,11 @@ static NSUInteger RCTDeviceFreeMemory(void)
     NSUInteger free = RCTDeviceFreeMemory();
     max = MIN((double)total * 0.2, (double)free * 0.6);
   }
-
   NSUInteger maxBufferCount = (double)max / (double)bytes;
   if (!maxBufferCount) {
     // At least 1 frame
     maxBufferCount = 1;
   }
-
   self.maxBufferCount = maxBufferCount;
 }
 
@@ -343,5 +343,6 @@ static NSUInteger RCTDeviceFreeMemory(void)
     dispatch_semaphore_signal(self.lock);
   }];
 }
+#endif // [macOS]
 
 @end

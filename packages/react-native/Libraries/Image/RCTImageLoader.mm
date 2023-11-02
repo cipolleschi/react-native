@@ -14,6 +14,7 @@
 #import <FBReactNativeSpec/FBReactNativeSpec.h>
 #import <React/RCTConvert.h>
 #import <React/RCTDefines.h>
+#import <React/RCTDevSettings.h> // [macOS] Expose DevSettings in release builds
 #import <React/RCTImageCache.h>
 #import <React/RCTImageLoader.h>
 #import <React/RCTImageLoaderWithAttributionProtocol.h>
@@ -40,9 +41,49 @@ void RCTEnableImageLoadingPerfInstrumentation(BOOL enabled)
 
 static NSInteger RCTImageBytesForImage(UIImage *image)
 {
-  NSInteger singleImageBytes = (NSInteger)(image.size.width * image.size.height * image.scale * image.scale * 4);
+  CGFloat imageScale = 1.0;
+#if !TARGET_OS_OSX // [macOS] no .scale prop on NSImage
+  imageScale = image.scale;
+#endif // [macOS]
+  NSInteger singleImageBytes = (NSInteger)(image.size.width * image.size.height * imageScale * imageScale * 4);
+#if !TARGET_OS_OSX // [macOS]
   return image.images ? image.images.count * singleImageBytes : singleImageBytes;
+#else // [macOS
+    return singleImageBytes;
+#endif // macOS]
 }
+
+#if TARGET_OS_OSX // [macOS
+
+/**
+ * Github #1611 - We can't depend on RCTUIKit here, because this file's podspec (React-RCTImage) doesn't
+ * take a dependency on RCTUIKit's pod `React-Core`. Let's just copy the methods we want to shim here
+ */
+
+static NSData *NSImageDataForFileType(NSImage *image, NSBitmapImageFileType fileType, NSDictionary<NSString *, id> *properties)
+{
+  RCTAssert(image.representations.count == 1, @"Expected only a single representation since UIImage only supports one.");
+
+  NSBitmapImageRep *imageRep = (NSBitmapImageRep *)image.representations.firstObject;
+  if (![imageRep isKindOfClass:[NSBitmapImageRep class]]) {
+    RCTAssert([imageRep isKindOfClass:[NSBitmapImageRep class]], @"We need an NSBitmapImageRep to create an image.");
+    return nil;
+  }
+
+  return [imageRep representationUsingType:fileType properties:properties];
+}
+
+
+NSData *UIImagePNGRepresentation(NSImage *image) {
+  return NSImageDataForFileType(image, NSBitmapImageFileTypePNG, @{});
+}
+
+NSData *UIImageJPEGRepresentation(NSImage *image, CGFloat compressionQuality) {
+  return NSImageDataForFileType(image,
+                                NSBitmapImageFileTypeJPEG,
+                                @{NSImageCompressionFactor: @(compressionQuality)});
+}
+#endif // macOS]
 
 static uint64_t monotonicTimeGetCurrentNanoseconds(void)
 {
@@ -466,6 +507,12 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image, CGSize size, CGFloat scal
   });
 }
 
+// [macOS
+- (NSInteger)activeTasks {
+  return _activeTasks;
+}
+// macOS]
+
 /**
  * This returns either an image, or raw image data, depending on the loading
  * path taken. This is useful if you want to skip decoding, e.g. when preloading
@@ -878,7 +925,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image, CGSize size, CGFloat scal
   return NO;
 }
 
-- (void)trackURLImageVisibilityForRequest:(RCTImageURLLoaderRequest *)loaderRequest imageView:(UIView *)imageView
+- (void)trackURLImageVisibilityForRequest:(RCTImageURLLoaderRequest *)loaderRequest imageView:(RCTUIView *)imageView // [macOS]
 {
   if (!loaderRequest || !imageView) {
     return;
@@ -968,8 +1015,8 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image, CGSize size, CGFloat scal
           // Decompress the image data (this may be CPU and memory intensive)
           UIImage *image = RCTDecodeImageWithData(data, size, scale, resizeMode);
 
-#if RCT_DEV
-          CGSize imagePixelSize = RCTSizeInPixels(image.size, image.scale);
+#if !TARGET_OS_OSX && RCT_DEV // [macOS]
+          CGSize imagePixelSize = RCTSizeInPixels(image.size, UIImageGetScale(image)); // [macOS]
           CGSize screenPixelSize = RCTSizeInPixels(RCTScreenSize(), RCTScreenScale());
           if (imagePixelSize.width * imagePixelSize.height > screenPixelSize.width * screenPixelSize.height) {
             RCTLogInfo(
@@ -1062,9 +1109,15 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image, CGSize size, CGFloat scal
           }
         } else {
           UIImage *image = imageOrData;
+#if !TARGET_OS_OSX // [macOS]
+          CGFloat imageScale = image.scale;
+#else // [macOS
+          // Trust -[NSImage size] on macOS since an image is a collection of representations instead of a thin wrapper around a CGImage
+          CGFloat imageScale = 1.0;
+#endif // macOS]
           size = (CGSize){
-              image.size.width * image.scale,
-              image.size.height * image.scale,
+              image.size.width * imageScale, // [macOS]
+              image.size.height * imageScale, // [macOS]
           };
         }
         callback(error, size);
@@ -1157,7 +1210,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image, CGSize size, CGFloat scal
 
                                         NSString *mimeType = nil;
                                         NSData *imageData = nil;
-                                        if (RCTImageHasAlpha(image.CGImage)) {
+                                        if (RCTUIImageHasAlpha(image)) { // [macOS]
                                           mimeType = @"image/png";
                                           imageData = UIImagePNGRepresentation(image);
                                         } else {

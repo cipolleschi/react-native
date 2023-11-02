@@ -5,7 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTBridgeDelegate.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 @class RCTBridge;
 @protocol RCTBridgeDelegate;
@@ -50,10 +51,13 @@
                                                          (const facebook::react::ObjCTurboModule::InitParams &)params
  *   - (id<RCTTurboModule>)getModuleInstanceFromClass:(Class)moduleClass
  */
-@interface RCTAppDelegate : UIResponder <UIApplicationDelegate, RCTBridgeDelegate>
-
+#if !TARGET_OS_OSX // [macOS]
+@interface RCTAppDelegate : UIResponder <UIApplicationDelegate, UISceneDelegate, RCTBridgeDelegate>
+#else // [macOS
+@interface RCTAppDelegate : NSResponder <NSApplicationDelegate, RCTBridgeDelegate>
+#endif // macOS]
 /// The window object, used to render the UViewControllers
-@property (nonatomic, strong) UIWindow *window;
+@property (nonatomic, strong) RCTPlatformWindow *window; // [macOS]
 @property (nonatomic, strong) RCTBridge *bridge;
 @property (nonatomic, strong) NSString *moduleName;
 @property (nonatomic, strong) NSDictionary *initialProps;
@@ -82,9 +86,9 @@
  *
  * @returns: a UIView properly configured with a bridge for React Native.
  */
-- (UIView *)createRootViewWithBridge:(RCTBridge *)bridge
-                          moduleName:(NSString *)moduleName
-                           initProps:(NSDictionary *)initProps;
+- (RCTPlatformView *)createRootViewWithBridge:(RCTBridge *)bridge // [macOS]
+                                   moduleName:(NSString *)moduleName
+                                    initProps:(NSDictionary *)initProps;
 
 /**
  * It creates the RootViewController.
@@ -103,7 +107,7 @@
  *
  * @return: void
  */
-- (void)setRootView:(UIView *)rootView toRootViewController:(UIViewController *)rootViewController;
+- (void)setRootView:(RCTPlatformView *)rootView toRootViewController:(UIViewController *)rootViewController; // [macOS]
 
 /// This method controls whether the App will use RuntimeScheduler. Only applicable in the legacy architecture.
 ///

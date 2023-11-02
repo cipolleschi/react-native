@@ -10,7 +10,7 @@
 #if RCT_DEV || RCT_REMOTE_PROFILE
 
 #import <React/RCTLog.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTDefines.h>
 #import <React/RCTInspectorPackagerConnection.h>
@@ -42,8 +42,12 @@ static NSString *getServerHost(NSURL *bundleURL)
 
 static NSURL *getInspectorDeviceUrl(NSURL *bundleURL)
 {
+#if !TARGET_OS_OSX // [macOS]
   NSString *escapedDeviceName = [[[UIDevice currentDevice] name]
       stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet];
+#else // [macOS
+  NSString *escapedDeviceName = @"";
+#endif // macOS]
   NSString *escapedAppName = [[[NSBundle mainBundle] bundleIdentifier]
       stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet];
   return [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/inspector/device?name=%@&app=%@",
@@ -51,10 +55,7 @@ static NSURL *getInspectorDeviceUrl(NSURL *bundleURL)
                                                          escapedDeviceName,
                                                          escapedAppName]];
 }
-static NSURL *getOpenUrlEndpoint(NSURL *bundleURL)
-{
-  return [NSURL URLWithString:[NSString stringWithFormat:@"http://%@/open-url", getServerHost(bundleURL)]];
-}
+
 @implementation RCTInspectorDevServerHelper
 
 RCT_NOT_IMPLEMENTED(-(instancetype)init)
@@ -68,16 +69,15 @@ static void sendEventToAllConnections(NSString *event)
   }
 }
 
-+ (void)openURL:(NSString *)url withBundleURL:(NSURL *)bundleURL withErrorMessage:(NSString *)errorMessage
++ (void)openDebugger:(NSURL *)bundleURL withErrorMessage:(NSString *)errorMessage
 {
-  NSURL *endpoint = getOpenUrlEndpoint(bundleURL);
+  NSString *appId = [[[NSBundle mainBundle] bundleIdentifier]
+      stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet];
 
-  NSDictionary *jsonBodyDict = @{@"url" : url};
-  NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject:jsonBodyDict options:kNilOptions error:nil];
-
-  NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:endpoint];
+  NSURL *url = [NSURL
+      URLWithString:[NSString stringWithFormat:@"http://%@/open-debugger?appId=%@", getServerHost(bundleURL), appId]];
+  NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
   [request setHTTPMethod:@"POST"];
-  [request setHTTPBody:jsonBodyData];
 
   [[[NSURLSession sharedSession]
       dataTaskWithRequest:request
@@ -106,9 +106,21 @@ static void sendEventToAllConnections(NSString *event)
   }
 
   NSString *key = [inspectorURL absoluteString];
+  // [macOS safety check to avoid a crash
+  if (key == nil) {
+    RCTLogError(@"failed to get inspector URL");
+    return nil;
+  }
+  // macOS]
   RCTInspectorPackagerConnection *connection = socketConnections[key];
   if (!connection || !connection.isConnected) {
     connection = [[RCTInspectorPackagerConnection alloc] initWithURL:inspectorURL];
+    // [macOS safety check to avoid a crash
+    if (connection == nil) {
+      RCTLogError(@"failed to initialize RCTInspectorPackagerConnection");
+      return nil;
+    }
+    // macOS]
     socketConnections[key] = connection;
     [connection connect];
   }

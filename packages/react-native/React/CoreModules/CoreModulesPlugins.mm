@@ -19,7 +19,9 @@
 Class RCTCoreModulesClassProvider(const char *name) {
   // Intentionally leak to avoid crashing after static destructors are run.
   static const auto sCoreModuleClassMap = new const std::unordered_map<std::string, Class (*)(void)>{
+#if !TARGET_OS_OSX // [macOS] Do we need these?
     {"AccessibilityManager", RCTAccessibilityManagerCls},
+#endif // [macOS]
     {"ActionSheetManager", RCTActionSheetManagerCls},
     {"AlertManager", RCTAlertManagerCls},
     {"AppState", RCTAppStateCls},
@@ -34,7 +36,9 @@ Class RCTCoreModulesClassProvider(const char *name) {
     {"I18nManager", RCTI18nManagerCls},
     {"KeyboardObserver", RCTKeyboardObserverCls},
     {"LogBox", RCTLogBoxCls},
+#if !TARGET_OS_OSX // [macOS] Do we need these?
     {"PerfMonitor", RCTPerfMonitorCls},
+#endif // [macOS]
     {"PlatformConstants", RCTPlatformCls},
     {"RedBox", RCTRedBoxCls},
     {"SourceCode", RCTSourceCodeCls},

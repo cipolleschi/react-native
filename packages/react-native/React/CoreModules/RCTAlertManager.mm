@@ -49,9 +49,19 @@ RCT_EXPORT_MODULE()
 
 - (void)invalidate
 {
+#if !TARGET_OS_OSX // [macOS]
   for (UIAlertController *alertController in _alertControllers) {
     [alertController.presentingViewController dismissViewControllerAnimated:YES completion:nil];
   }
+#else // [macOS
+  for (NSAlert *alert in _alertControllers) {
+    if (alert.window.sheetParent) {
+      [alert.window.sheetParent endSheet:alert.window];
+    } else {
+      [alert.window close];
+    }
+  }
+#endif // macOS]
 }
 
 /**
@@ -77,17 +87,23 @@ RCT_EXPORT_METHOD(alertWithArgs : (JS::NativeAlertManager::Args &)args callback 
       [RCTConvert NSDictionaryArray:RCTConvertOptionalVecToArray(args.buttons(), ^id(id<NSObject> element) {
                     return element;
                   })];
+#if !TARGET_OS_OSX // [macOS]
   NSString *defaultValue = [RCTConvert NSString:args.defaultValue()];
   NSString *cancelButtonKey = [RCTConvert NSString:args.cancelButtonKey()];
   NSString *destructiveButtonKey = [RCTConvert NSString:args.destructiveButtonKey()];
   NSString *preferredButtonKey = [RCTConvert NSString:args.preferredButtonKey()];
   UIKeyboardType keyboardType = [RCTConvert UIKeyboardType:args.keyboardType()];
+#else // [macOS
+  BOOL critical = args.critical().value_or(NO);
+  BOOL modal = args.modal().value_or(NO);
+  NSArray<NSDictionary *> *defaultInputs = [RCTConvert NSDictionaryArray:RCTConvertOptionalVecToArray(args.defaultInputs(), ^id(id<NSObject> element) { return element; })];
+#endif // macOS]
 
   if (!title && !message) {
     RCTLogError(@"Must specify either an alert title, or message, or both");
     return;
   }
-
+#if !TARGET_OS_OSX // [macOS]
   if (buttons.count == 0) {
     if (type == RCTAlertViewStyleDefault) {
       buttons = @[ @{@"0" : RCTUIKitLocalizedString(@"OK")} ];
@@ -198,6 +214,99 @@ RCT_EXPORT_METHOD(alertWithArgs : (JS::NativeAlertManager::Args &)args callback 
   dispatch_async(dispatch_get_main_queue(), ^{
     [alertController show:YES completion:nil];
   });
+#else // [macOS
+  
+  NSAlert *alert = [NSAlert new];
+  if (title.length > 0) {
+    alert.messageText = title;
+  }
+  if (message.length > 0) {
+    alert.informativeText = message;
+  }
+  
+  if (critical) {
+    alert.alertStyle = NSAlertStyleCritical;
+  }
+  
+  NSView *accessoryView = nil;
+	
+	const NSRect RCTSingleTextFieldFrame = NSMakeRect(0.0, 0.0, 200.0, 22.0);
+	const NSRect RCTUsernamePasswordFrame = NSMakeRect(0.0, 0.0, 200.0, 50.0);
+	
+	id (^textFieldDefaults)(NSTextField *, BOOL) = ^id(NSTextField *textField, BOOL isPassword) {
+		textField.cell.scrollable = YES;
+		textField.cell.wraps = YES;
+    textField.maximumNumberOfLines = 1;
+		textField.stringValue = (isPassword ? defaultInputs.lastObject[@"default"] : defaultInputs.firstObject[@"default"]) ?: @"";
+		textField.placeholderString = isPassword ? defaultInputs.lastObject[@"placeholder"] : defaultInputs.firstObject[@"placeholder"];
+		return textField;
+	};
+	
+  switch (type) {
+    case RCTAlertViewStylePlainTextInput: {
+      accessoryView = textFieldDefaults([[NSTextField alloc] initWithFrame:RCTSingleTextFieldFrame], NO);
+      accessoryView.translatesAutoresizingMaskIntoConstraints = YES;
+      break;
+    }
+    case RCTAlertViewStyleSecureTextInput: {
+      accessoryView = textFieldDefaults([[NSSecureTextField alloc] initWithFrame:RCTSingleTextFieldFrame], NO);
+      break;
+    }
+    case RCTAlertViewStyleLoginAndPasswordInput: {
+      accessoryView = [[NSView alloc] initWithFrame:RCTUsernamePasswordFrame];
+      
+      NSSecureTextField *password = textFieldDefaults([[NSSecureTextField alloc] initWithFrame:RCTSingleTextFieldFrame], YES);
+      NSTextField *input = textFieldDefaults([[NSTextField alloc] initWithFrame:NSMakeRect(CGRectGetMinX(password.frame), CGRectGetMaxY(password.frame), CGRectGetWidth(password.frame), CGRectGetHeight(password.frame))], NO);
+			
+      [accessoryView addSubview:input];
+      [accessoryView addSubview:password];
+			
+      break;
+    }
+    case RCTAlertViewStyleDefault:
+      break;
+  }
+  alert.accessoryView = accessoryView;
+  
+  for (NSDictionary<NSString *, id> *button in buttons) {
+    if (button.count != 1) {
+      RCTLogError(@"Button definitions should have exactly one key.");
+    }
+    NSString *buttonKey = button.allKeys.firstObject;
+    NSString *buttonTitle = [RCTConvert NSString:button[buttonKey]];
+    [alert addButtonWithTitle:buttonTitle];
+  }
+  
+  void (^callbacksHandlers)(NSModalResponse response) = ^void(NSModalResponse response) {
+    NSString *buttonKey = @"0";
+    if (response >= NSAlertFirstButtonReturn) {
+      buttonKey = buttons[response - NSAlertFirstButtonReturn].allKeys.firstObject;
+    }
+    NSArray<NSTextField*> *textfields = [accessoryView isKindOfClass:NSTextField.class] ? @[accessoryView] : accessoryView.subviews;
+    if (textfields.count == 2) {
+      NSDictionary<NSString *, NSString *> *loginCredentials = @{
+                                                                 @"login": textfields.firstObject.stringValue,
+                                                                 @"password": textfields.lastObject.stringValue
+                                                                 };
+      callback(@[buttonKey, loginCredentials]);
+    } else if (textfields.count == 1) {
+      callback(@[buttonKey, textfields.firstObject.stringValue]);
+    } else {
+      callback(@[buttonKey]);
+    }
+  };
+  
+  if (!_alertControllers) {
+    _alertControllers = [NSHashTable weakObjectsHashTable];
+  }
+  [_alertControllers addObject:alert];
+  
+  if (modal) {
+    callbacksHandlers([alert runModal]);
+  } else {
+    [alert beginSheetModalForWindow:[NSApp keyWindow] completionHandler:callbacksHandlers];
+  }
+#endif // macOS]
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

@@ -84,6 +84,8 @@ import typeof YellowBox from './Libraries/YellowBox/YellowBoxDeprecated';
 
 // Plugins
 import typeof {DynamicColorIOS} from './Libraries/StyleSheet/PlatformColorValueTypesIOS';
+import typeof {DynamicColorMacOS} from './Libraries/StyleSheet/PlatformColorValueTypesMacOS'; // [macOS]
+import typeof {ColorWithSystemEffectMacOS} from './Libraries/StyleSheet/PlatformColorValueTypesMacOS'; // [macOS]
 import typeof NativeModules from './Libraries/BatchedBridge/NativeModules';
 import typeof Platform from './Libraries/Utilities/Platform';
 import typeof {PlatformColor} from './Libraries/StyleSheet/PlatformColorValueTypes';
@@ -364,6 +366,15 @@ module.exports = {
   get processColor(): processColor {
     return require('./Libraries/StyleSheet/processColor').default;
   },
+  // [macOS
+  get DynamicColorMacOS(): DynamicColorMacOS {
+    return require('./Libraries/StyleSheet/PlatformColorValueTypesMacOS')
+      .DynamicColorMacOS;
+  },
+  get ColorWithSystemEffectMacOS(): ColorWithSystemEffectMacOS {
+    return require('./Libraries/StyleSheet/PlatformColorValueTypesMacOS')
+      .ColorWithSystemEffectMacOS;
+  }, // macOS]
   get requireNativeComponent(): <T>(
     uiViewClassName: string,
   ) => HostComponent<T> {
@@ -419,6 +430,7 @@ module.exports = {
     );
     return require('deprecated-react-native-prop-types').ViewPropTypes;
   },
+  // macOS]
 };
 
 if (__DEV__) {

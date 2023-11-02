@@ -13,24 +13,24 @@
  */
 @interface RCTEventEmitter : NSObject <RCTBridgeModule, RCTInvalidating>
 
-@property (nonatomic, weak) RCTBridge *bridge;
-@property (nonatomic, weak) RCTModuleRegistry *moduleRegistry;
-@property (nonatomic, weak) RCTViewRegistry *viewRegistry_DEPRECATED;
+@property (nonatomic, weak) RCTBridge * _Nullable bridge; // [macOS]
+@property (nonatomic, weak) RCTModuleRegistry * _Nullable moduleRegistry; // [macOS]
+@property (nonatomic, weak) RCTViewRegistry * _Nullable viewRegistry_DEPRECATED; // [macOS]
 
-- (instancetype)initWithDisabledObservation;
+- (instancetype _Nullable)initWithDisabledObservation; // [macOS]
 
 /**
  * Override this method to return an array of supported event names. Attempting
  * to observe or send an event that isn't included in this list will result in
  * an error.
  */
-- (NSArray<NSString *> *)supportedEvents;
+- (NSArray<NSString *> *_Nullable)supportedEvents; // [macOS]
 
 /**
  * Send an event that does not relate to a specific view, e.g. a navigation
  * or data update notification.
  */
-- (void)sendEventWithName:(NSString *)name body:(id)body;
+- (void)sendEventWithName:(NSString *_Nullable)name body:(id _Nullable )body; // [macOS]
 
 - (BOOL)canSendEvents_DEPRECATED;
 
@@ -44,7 +44,7 @@
 
 - (void)invalidate NS_REQUIRES_SUPER;
 
-- (void)addListener:(NSString *)eventName;
+- (void)addListener:(NSString *_Nullable)eventName; // [macOS]
 - (void)removeListeners:(double)count;
 
 @end

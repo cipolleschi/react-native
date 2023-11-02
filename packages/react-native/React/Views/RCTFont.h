@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <Foundation/Foundation.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTConvert.h>
 

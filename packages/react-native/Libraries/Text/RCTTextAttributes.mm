@@ -11,10 +11,25 @@
 #import <React/RCTFont.h>
 #import <React/RCTLog.h>
 
+#if TARGET_OS_OSX // [macOS
+#import <React/RCTCursor.h>
+#endif // macOS]
+
 NSString *const RCTTextAttributesIsHighlightedAttributeName = @"RCTTextAttributesIsHighlightedAttributeName";
 NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttributeName";
 
 @implementation RCTTextAttributes
+
+// [macOS
++ (RCTUIColor *)defaultForegroundColor
+{
+  if (@available(iOS 13.0, *)) {
+    return [RCTUIColor labelColor];
+  } else {
+    return [RCTUIColor blackColor];
+  }
+}
+// macOS]
 
 - (instancetype)init
 {
@@ -31,6 +46,10 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
     _textShadowRadius = NAN;
     _opacity = NAN;
     _textTransform = RCTTextTransformUndefined;
+    _foregroundColor = [RCTTextAttributes defaultForegroundColor]; // [macOS]
+#if TARGET_OS_OSX // [macOS
+    _cursor = RCTCursorAuto;
+#endif // macOS]
   }
 
   return self;
@@ -43,7 +62,7 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   // We will address this in the future.
 
   // Color
-  _foregroundColor = textAttributes->_foregroundColor ?: _foregroundColor;
+  _foregroundColor = textAttributes->_foregroundColor == [RCTTextAttributes defaultForegroundColor] ? _foregroundColor : textAttributes->_foregroundColor;
   _backgroundColor = textAttributes->_backgroundColor ?: _backgroundColor;
   _opacity =
       !isnan(textAttributes->_opacity) ? (isnan(_opacity) ? 1.0 : _opacity) * textAttributes->_opacity : _opacity;
@@ -95,6 +114,9 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
       : _layoutDirection;
   _textTransform =
       textAttributes->_textTransform != RCTTextTransformUndefined ? textAttributes->_textTransform : _textTransform;
+#if TARGET_OS_OSX // [macOS
+  _cursor = textAttributes->_cursor != RCTCursorAuto ? textAttributes->_cursor : _cursor;
+#endif // macOS]
 }
 
 - (NSParagraphStyle *)effectiveParagraphStyle
@@ -122,7 +144,7 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   }
 
   if (_lineBreakStrategy != NSLineBreakStrategyNone) {
-    if (@available(iOS 14.0, *)) {
+    if (@available(iOS 14.0, macOS 11.0, *)) { // [macOS]
       paragraphStyle.lineBreakStrategy = _lineBreakStrategy;
       isParagraphStyleUsed = YES;
     }
@@ -153,7 +175,7 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   }
 
   // Colors
-  UIColor *effectiveForegroundColor = self.effectiveForegroundColor;
+  RCTUIColor *effectiveForegroundColor = self.effectiveForegroundColor; // [macOS]
 
   if (_foregroundColor || !isnan(_opacity)) {
     attributes[NSForegroundColorAttributeName] = effectiveForegroundColor;
@@ -211,6 +233,12 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
     attributes[RCTTextAttributesTagAttributeName] = _tag;
   }
 
+#if TARGET_OS_OSX // [macOS
+  if (_cursor != RCTCursorAuto) {
+    attributes[NSCursorAttributeName] = [RCTConvert NSCursor:_cursor];
+  }
+#endif // macOS]
+
   return [attributes copy];
 }
 
@@ -232,12 +260,14 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
 
   if (fontScalingEnabled) {
     CGFloat fontSizeMultiplier = !isnan(_fontSizeMultiplier) ? _fontSizeMultiplier : 1.0;
+#if !TARGET_OS_OSX // [macOS]
     if (_dynamicTypeRamp != RCTDynamicTypeRampUndefined) {
       UIFontMetrics *fontMetrics = RCTUIFontMetricsForDynamicTypeRamp(_dynamicTypeRamp);
       // Using a specific font size reduces rounding errors from -scaledValueForValue:
       CGFloat requestedSize = isnan(_fontSize) ? RCTBaseSizeForDynamicTypeRamp(_dynamicTypeRamp) : _fontSize;
       fontSizeMultiplier = [fontMetrics scaledValueForValue:requestedSize] / requestedSize;
     }
+#endif // [macOS]
     CGFloat maxFontSizeMultiplier = !isnan(_maxFontSizeMultiplier) ? _maxFontSizeMultiplier : 0.0;
     return maxFontSizeMultiplier >= 1.0 ? fminf(maxFontSizeMultiplier, fontSizeMultiplier) : fontSizeMultiplier;
   } else {
@@ -245,9 +275,9 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   }
 }
 
-- (UIColor *)effectiveForegroundColor
+- (RCTUIColor *)effectiveForegroundColor // [macOS]
 {
-  UIColor *effectiveForegroundColor = _foregroundColor ?: [UIColor blackColor];
+  RCTUIColor *effectiveForegroundColor = _foregroundColor ?: [RCTUIColor blackColor]; // [macOS]
 
   if (!isnan(_opacity)) {
     effectiveForegroundColor =
@@ -257,16 +287,16 @@ NSString *const RCTTextAttributesTagAttributeName = @"RCTTextAttributesTagAttrib
   return effectiveForegroundColor;
 }
 
-- (UIColor *)effectiveBackgroundColor
+- (RCTUIColor *)effectiveBackgroundColor // [macOS]
 {
-  UIColor *effectiveBackgroundColor = _backgroundColor; // ?: [[UIColor whiteColor] colorWithAlphaComponent:0];
+  RCTUIColor *effectiveBackgroundColor = _backgroundColor; // ?: [[UIColor whiteColor] colorWithAlphaComponent:0]; // [macOS]
 
   if (effectiveBackgroundColor && !isnan(_opacity)) {
     effectiveBackgroundColor =
         [effectiveBackgroundColor colorWithAlphaComponent:CGColorGetAlpha(effectiveBackgroundColor.CGColor) * _opacity];
   }
 
-  return effectiveBackgroundColor ?: [UIColor clearColor];
+  return effectiveBackgroundColor ?: [RCTUIColor clearColor]; // [macOS]
 }
 
 static NSString *capitalizeText(NSString *text)

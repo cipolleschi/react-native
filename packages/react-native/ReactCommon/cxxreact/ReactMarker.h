@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #ifdef __APPLE__
 #include <functional>
 #endif
@@ -36,13 +38,13 @@ enum ReactMarkerId {
 
 #ifdef __APPLE__
 using LogTaggedMarker =
-    std::function<void(const ReactMarkerId, const char *tag)>; // Bridge only
+    std::function<void(const ReactMarkerId, const char* tag)>; // Bridge only
 using LogTaggedMarkerBridgeless =
-    std::function<void(const ReactMarkerId, const char *tag)>;
+    std::function<void(const ReactMarkerId, const char* tag)>;
 #else
 typedef void (
-    *LogTaggedMarker)(const ReactMarkerId, const char *tag); // Bridge only
-typedef void (*LogTaggedMarkerBridgeless)(const ReactMarkerId, const char *tag);
+    *LogTaggedMarker)(const ReactMarkerId, const char* tag); // Bridge only
+typedef void (*LogTaggedMarkerBridgeless)(const ReactMarkerId, const char* tag);
 #endif
 
 #ifndef RN_EXPORT
@@ -55,21 +57,21 @@ extern RN_EXPORT LogTaggedMarker logTaggedMarkerBridgelessImpl;
 extern RN_EXPORT void logMarker(const ReactMarkerId markerId); // Bridge only
 extern RN_EXPORT void logTaggedMarker(
     const ReactMarkerId markerId,
-    const char *tag); // Bridge only
+    const char* tag); // Bridge only
 extern RN_EXPORT void logMarkerBridgeless(const ReactMarkerId markerId);
 extern RN_EXPORT void logTaggedMarkerBridgeless(
     const ReactMarkerId markerId,
-    const char *tag);
+    const char* tag);
 
 struct ReactMarkerEvent {
   const ReactMarkerId markerId;
-  const char *tag;
+  const char* tag;
   double time;
 };
 
 class RN_EXPORT StartupLogger {
  public:
-  static StartupLogger &getInstance();
+  static StartupLogger& getInstance();
 
   void logStartupEvent(const ReactMarkerId markerName, double markerTime);
   double getAppStartupStartTime();
@@ -81,15 +83,15 @@ class RN_EXPORT StartupLogger {
 
  private:
   StartupLogger() = default;
-  StartupLogger(const StartupLogger &) = delete;
-  StartupLogger &operator=(const StartupLogger &) = delete;
+  StartupLogger(const StartupLogger&) = delete;
+  StartupLogger& operator=(const StartupLogger&) = delete;
 
-  double appStartupStartTime;
-  double appStartupEndTime;
-  double initReactRuntimeStartTime;
-  double initReactRuntimeEndTime;
-  double runJSBundleStartTime;
-  double runJSBundleEndTime;
+  double appStartupStartTime = std::nan("");
+  double appStartupEndTime = std::nan("");
+  double initReactRuntimeStartTime = std::nan("");
+  double initReactRuntimeEndTime = std::nan("");
+  double runJSBundleStartTime = std::nan("");
+  double runJSBundleEndTime = std::nan("");
 };
 
 // When the marker got logged from the platform, it will notify here. This is

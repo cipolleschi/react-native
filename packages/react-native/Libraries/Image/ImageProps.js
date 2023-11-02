@@ -255,6 +255,11 @@ export type ImageProps = {|
    */
   srcSet?: ?string,
   children?: empty,
+
+  /**
+   * Specifies the Tooltip for the view
+   */
+  tooltip?: ?string,
 |};
 
 export type ImageBackgroundProps = $ReadOnly<{|

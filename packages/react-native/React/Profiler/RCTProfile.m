@@ -13,7 +13,7 @@
 #import <objc/runtime.h>
 #import <stdatomic.h>
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import "RCTAssert.h"
 #import "RCTBridge+Private.h"
@@ -48,9 +48,11 @@ static NSDictionary *RCTProfileInfo;
 static NSMutableDictionary *RCTProfileOngoingEvents;
 static NSTimeInterval RCTProfileStartTime;
 static NSUInteger RCTProfileEventID = 0;
-static CADisplayLink *RCTProfileDisplayLink;
 static __weak RCTBridge *_RCTProfilingBridge;
+#if !TARGET_OS_OSX // [macOS]
+static CADisplayLink *RCTProfileDisplayLink; // [macOS]
 static UIWindow *RCTProfileControlsWindow;
+#endif // [macOS]
 
 #pragma mark - Macros
 
@@ -202,10 +204,10 @@ void RCTProfileTrampolineEnd(void)
   RCT_PROFILE_END_EVENT(RCTProfileTagAlways, @"objc_call,modules,auto");
 }
 
-static UIView *(*originalCreateView)(RCTComponentData *, SEL, NSNumber *, NSNumber *);
-static UIView *RCTProfileCreateView(RCTComponentData *self, SEL _cmd, NSNumber *tag, NSNumber *rootTag)
+static RCTUIView *(*originalCreateView)(RCTComponentData *, SEL, NSNumber *, NSNumber *); // [macOS]
+static RCTUIView *RCTProfileCreateView(RCTComponentData *self, SEL _cmd, NSNumber *tag, NSNumber *rootTag) // [macOS]
 {
-  UIView *view = originalCreateView(self, _cmd, tag, rootTag);
+  RCTUIView *view = originalCreateView(self, _cmd, tag, rootTag); // [macOS]
   RCTProfileHookInstance(view);
   return view;
 }
@@ -367,6 +369,7 @@ void RCTProfileUnhookModules(RCTBridge *bridge)
 
 #pragma mark - Private ObjC class only used for the vSYNC CADisplayLink target
 
+#if !TARGET_OS_OSX // [macOS]
 @interface RCTProfile : NSObject
 @end
 
@@ -424,6 +427,7 @@ void RCTProfileUnhookModules(RCTBridge *bridge)
 }
 
 @end
+#endif // [macOS]
 
 #pragma mark - Public Functions
 
@@ -483,8 +487,10 @@ void RCTProfileInit(RCTBridge *bridge)
 
   RCTProfileHookModules(bridge);
 
+#if !TARGET_OS_OSX // [macOS]
   RCTProfileDisplayLink = [CADisplayLink displayLinkWithTarget:[RCTProfile class] selector:@selector(vsync:)];
   [RCTProfileDisplayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+#endif // [macOS]
 
   [[NSNotificationCenter defaultCenter] postNotificationName:RCTProfileDidStartProfiling object:bridge];
 }
@@ -499,8 +505,10 @@ void RCTProfileEnd(RCTBridge *bridge, void (^callback)(NSString *))
 
   [[NSNotificationCenter defaultCenter] postNotificationName:RCTProfileDidEndProfiling object:bridge];
 
+#if !TARGET_OS_OSX // [macOS]
   [RCTProfileDisplayLink invalidate];
   RCTProfileDisplayLink = nil;
+#endif // [macOS]
 
   RCTProfileUnhookModules(bridge);
 
@@ -746,6 +754,7 @@ void RCTProfileSendResult(RCTBridge *bridge, NSString *route, NSData *data)
               NSString *message = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
 
               if (message.length) {
+#if !TARGET_OS_OSX // [macOS]
                 dispatch_async(dispatch_get_main_queue(), ^{
                   UIAlertController *alertController =
                       [UIAlertController alertControllerWithTitle:@"Profile"
@@ -756,6 +765,13 @@ void RCTProfileSendResult(RCTBridge *bridge, NSString *route, NSData *data)
                                                                     handler:nil]];
                   [RCTPresentedViewController() presentViewController:alertController animated:YES completion:nil];
                 });
+#else // [macOS               
+                NSAlert *alert = [NSAlert new];
+                alert.messageText = @"Profile";
+                alert.informativeText = message;
+                [alert addButtonWithTitle:@"OK"];
+                [alert runModal];
+#endif // macOS]
               }
             }
           }];
@@ -763,6 +779,7 @@ void RCTProfileSendResult(RCTBridge *bridge, NSString *route, NSData *data)
   [task resume];
 }
 
+#if !TARGET_OS_OSX // [macOS]
 void RCTProfileShowControls(void)
 {
   static const CGFloat height = 30;
@@ -801,5 +818,6 @@ void RCTProfileHideControls(void)
   RCTProfileControlsWindow.hidden = YES;
   RCTProfileControlsWindow = nil;
 }
+#endif // [macOS]
 
 #endif

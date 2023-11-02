@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTDefines.h>
 #import <yoga/Yoga.h>
@@ -31,7 +31,7 @@ typedef struct CG_BOXABLE RCTLayoutMetrics RCTLayoutMetrics;
 
 struct RCTLayoutContext {
   CGPoint absolutePosition;
-  __unsafe_unretained NSHashTable<RCTShadowView *> *_Nonnull affectedShadowViews;
+  __unsafe_unretained NSPointerArray *_Nonnull affectedShadowViews;
   __unsafe_unretained NSHashTable<NSString *> *_Nonnull other;
 };
 typedef struct CG_BOXABLE RCTLayoutContext RCTLayoutContext;

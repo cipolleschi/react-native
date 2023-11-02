@@ -84,7 +84,7 @@ CGFloat RCTInterpolateValueInRange(
   return RCTInterpolateValue(value, inputMin, inputMax, outputMin, outputMax, extrapolateLeft, extrapolateRight);
 }
 
-uint32_t RCTInterpolateColorInRange(CGFloat value, NSArray<NSNumber *> *inputRange, NSArray<UIColor *> *outputRange)
+uint32_t RCTInterpolateColorInRange(CGFloat value, NSArray<NSNumber *> *inputRange, NSArray<RCTUIColor *> *outputRange) // [macOS]
 {
   NSUInteger rangeIndex = RCTFindIndexOfNearestValue(value, inputRange);
   CGFloat inputMin = inputRange[rangeIndex].doubleValue;

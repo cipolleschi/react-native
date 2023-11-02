@@ -6,12 +6,15 @@
  */
 
 #import <React/RCTBaseTextViewManager.h>
+#if TARGET_OS_OSX // [macOS
+#import <React/RCTCursor.h>
+#endif // macOS]
 
 @implementation RCTBaseTextViewManager
 
 RCT_EXPORT_MODULE(RCTBaseText)
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
   RCTAssert(NO, @"The `-[RCTBaseTextViewManager view]` property must be overridden in subclass.");
   return nil;
@@ -55,5 +58,9 @@ RCT_REMAP_SHADOW_PROPERTY(textShadowColor, textAttributes.textShadowColor, UICol
 // Special
 RCT_REMAP_SHADOW_PROPERTY(isHighlighted, textAttributes.isHighlighted, BOOL)
 RCT_REMAP_SHADOW_PROPERTY(textTransform, textAttributes.textTransform, RCTTextTransform)
+
+#if TARGET_OS_OSX // [macOS
+RCT_REMAP_SHADOW_PROPERTY(cursor, textAttributes.cursor, RCTCursor)
+#endif // macOS]
 
 @end

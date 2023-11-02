@@ -11,12 +11,15 @@
 
 @interface RCTAlertController ()
 
+#if !TARGET_OS_OSX // [macOS]
 @property (nonatomic, strong) UIWindow *alertWindow;
+#endif // [macOS]
 
 @end
 
 @implementation RCTAlertController
 
+#if !TARGET_OS_OSX // [macOS]
 - (UIWindow *)alertWindow
 {
   if (_alertWindow == nil) {
@@ -43,9 +46,13 @@
 
 - (void)show:(BOOL)animated completion:(void (^)(void))completion
 {
-  UIUserInterfaceStyle style = RCTSharedApplication().delegate.window.overrideUserInterfaceStyle
-      ? RCTSharedApplication().delegate.window.overrideUserInterfaceStyle
-      : UIUserInterfaceStyleUnspecified;
+  UIUserInterfaceStyle style = self.overrideUserInterfaceStyle;
+  if (style == UIUserInterfaceStyleUnspecified) {
+    style = RCTSharedApplication().delegate.window.overrideUserInterfaceStyle
+        ? RCTSharedApplication().delegate.window.overrideUserInterfaceStyle
+        : UIUserInterfaceStyleUnspecified;
+  }
+
   self.overrideUserInterfaceStyle = style;
 
   [self.alertWindow makeKeyAndVisible];
@@ -72,5 +79,6 @@
 
   return nil;
 }
+#endif // [macOS]
 
 @end

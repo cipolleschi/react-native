@@ -29,6 +29,7 @@ RCT_ENUM_CONVERTER(
 
 @end
 
+#if !TARGET_OS_OSX // [macOS]
 UIFontMetrics *RCTUIFontMetricsForDynamicTypeRamp(RCTDynamicTypeRamp dynamicTypeRamp)
 {
   static NSDictionary<NSNumber *, UIFontTextStyle> *mapping;
@@ -80,3 +81,4 @@ CGFloat RCTBaseSizeForDynamicTypeRamp(RCTDynamicTypeRamp dynamicTypeRamp)
       mapping[@(dynamicTypeRamp)] ?: @17; // Default to body size if we don't recognize the specified ramp
   return CGFLOAT_IS_DOUBLE ? [baseSize doubleValue] : [baseSize floatValue];
 }
+#endif // [macOS]

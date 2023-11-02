@@ -18,11 +18,18 @@ const {
   Text,
   TextInput,
   View,
+  Image, // [macOS]
+  Platform, // [macOS]
   StyleSheet,
   Switch,
   Alert,
 } = require('react-native');
-import type {KeyboardType} from 'react-native/Libraries/Components/TextInput/TextInput';
+// [macOS
+import type {
+  KeyboardType,
+  SettingChangeEvent,
+  PasteEvent,
+} from 'react-native/Libraries/Components/TextInput/TextInput'; // macOS]
 
 const TextInputSharedExamples = require('./TextInputSharedExamples.js');
 
@@ -300,6 +307,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Cochin',
     height: 60,
   },
+  singleLine: {
+    fontSize: 16,
+  },
   singlelinePlaceholderStyles: {
     letterSpacing: 10,
     textAlign: 'center',
@@ -324,6 +334,132 @@ const styles = StyleSheet.create({
     width: 24,
   },
 });
+
+// [macOS
+function AutoCorrectSpellCheckGrammarCheckCallbacks(): React.Node {
+  const [enableAutoCorrect, setEnableAutoCorrect] = React.useState(false);
+  const [enableSpellSpeck, setEnableSpellSpeck] = React.useState(false);
+  const [enableGrammarCheck, setEnableGrammarCheck] = React.useState(false);
+  return (
+    <>
+      <Text>
+        enableAutoCorrect: {enableAutoCorrect ? 'enabled' : 'disabled'}
+      </Text>
+      <Text>enableSpellSpeck: {enableSpellSpeck ? 'enabled' : 'disabled'}</Text>
+      <Text>
+        enableGrammarCheck: {enableGrammarCheck ? 'enabled' : 'disabled'}
+      </Text>
+      <TextInput
+        autoCorrect={enableAutoCorrect}
+        style={{padding: 10, marginTop: 10}}
+        multiline={true}
+        onAutoCorrectChange={(event: SettingChangeEvent) =>
+          setEnableAutoCorrect(event.nativeEvent.enabled)
+        }
+        onSpellCheckChange={(event: SettingChangeEvent) =>
+          setEnableSpellSpeck(event.nativeEvent.enabled)
+        }
+        onGrammarCheckChange={(event: SettingChangeEvent) =>
+          setEnableGrammarCheck(event.nativeEvent.enabled)
+        }
+      />
+    </>
+  );
+}
+
+function OnDragEnterOnDragLeaveOnDrop(): React.Node {
+  // $FlowFixMe[missing-empty-array-annot]
+  const [log, setLog] = React.useState([]);
+  const appendLog = (line: string) => {
+    const limit = 6;
+    let newLog = log.slice(0, limit - 1);
+    newLog.unshift(line);
+    setLog(newLog);
+  };
+  return (
+    <>
+      <TextInput
+        multiline={false}
+        draggedTypes={'fileUrl'}
+        onDragEnter={e => appendLog('SinglelineEnter')}
+        onDragLeave={e => appendLog('SinglelineLeave')}
+        onDrop={e => appendLog('SinglelineDrop')}
+        style={styles.multiline}
+        placeholder="SINGLE LINE with onDragEnter|Leave() and onDrop()"
+      />
+      <TextInput
+        multiline={true}
+        draggedTypes={'fileUrl'}
+        onDragEnter={e => appendLog('MultilineEnter')}
+        onDragLeave={e => appendLog('MultilineLeave')}
+        onDrop={e => appendLog('MultilineDrop')}
+        style={styles.multiline}
+        placeholder="MULTI LINE with onDragEnter|Leave() and onDrop()"
+      />
+      <Text style={{height: 120}}>{log.join('\n')}</Text>
+      <TextInput
+        multiline={false}
+        style={styles.multiline}
+        placeholder="SINGLE LINE w/o onDragEnter|Leave() and onDrop()"
+      />
+      <TextInput
+        multiline={true}
+        style={styles.multiline}
+        placeholder="MULTI LINE w/o onDragEnter|Leave() and onDrop()"
+      />
+    </>
+  );
+}
+
+function OnPaste(): React.Node {
+  // $FlowFixMe[missing-empty-array-annot]
+  const [log, setLog] = React.useState([]);
+  const appendLog = (line: string) => {
+    const limit = 3;
+    let newLog = log.slice(0, limit - 1);
+    newLog.unshift(line);
+    setLog(newLog);
+  };
+  const [imageUri, setImageUri] = React.useState(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==',
+  );
+  return (
+    <>
+      <TextInput
+        multiline={true}
+        style={styles.multiline}
+        onPaste={(e: PasteEvent) => {
+          appendLog(JSON.stringify(e.nativeEvent.dataTransfer.types));
+          setImageUri(e.nativeEvent.dataTransfer.files[0].uri);
+        }}
+        pastedTypes={['string']}
+        placeholder="MULTI LINE with onPaste() text from clipboard"
+      />
+      <TextInput
+        multiline={true}
+        style={styles.multiline}
+        onPaste={(e: PasteEvent) => {
+          appendLog(JSON.stringify(e.nativeEvent.dataTransfer.types));
+          setImageUri(e.nativeEvent.dataTransfer.files[0].uri);
+        }}
+        pastedTypes={['fileUrl', 'image', 'string']}
+        placeholder="MULTI LINE with onPaste() for PNG/TIFF images from clipboard or fileUrl (via Finder) and text from clipboard"
+      />
+      <Text style={{height: 30}}>{log.join('\n')}</Text>
+      <Image
+        source={{uri: imageUri}}
+        style={{
+          width: 128,
+          height: 128,
+          margin: 4,
+          borderWidth: 1,
+          borderColor: 'white',
+        }}
+      />
+    </>
+  );
+}
+// macOS]
 
 const examples: Array<RNTesterModuleExample> = [
   ...TextInputSharedExamples,
@@ -472,6 +608,10 @@ const examples: Array<RNTesterModuleExample> = [
   },
   {
     title: 'Colored highlight/cursor for text input',
+    // [macOS
+    description:
+      ('Note: On macOS, the selectionColor prop does not change the cursor color.': string),
+    // macOS]
     render: function (): React.Node {
       return (
         <View>
@@ -605,6 +745,20 @@ const examples: Array<RNTesterModuleExample> = [
             editable={false}
             multiline={true}
             style={styles.multiline}
+          />
+          {/* [macOS */}
+          <TextInput
+            placeholder="multiline text input with scroll disabled"
+            multiline={true}
+            scrollEnabled={false}
+            style={styles.multiline}
+          />
+          {/* macOS] */}
+          <TextInput
+            placeholder="multiline text input with vertical scrollbar hidden"
+            multiline={true}
+            style={styles.multiline}
+            hideVerticalScrollIndicator={true}
           />
           <TextInput
             defaultValue="uneditable multiline text input with phone number detection: 88888888."
@@ -939,6 +1093,118 @@ const examples: Array<RNTesterModuleExample> = [
     },
   },
 ];
+
+// [macOS
+if (Platform.OS === 'macos') {
+  examples.push(
+    {
+      title:
+        'AutoCorrect, spellCheck and grammarCheck callbacks - Multiline Textfield',
+      render: function (): React.Node {
+        return <AutoCorrectSpellCheckGrammarCheckCallbacks />;
+      },
+    },
+    {
+      title: 'Clear text on submit - Multiline Textfield',
+      render: function (): React.Node {
+        return (
+          <View>
+            <Text>Default submit key (Enter):</Text>
+            <TextInput
+              multiline={true}
+              clearTextOnSubmit={true}
+              style={styles.multiline}
+            />
+            <Text>Custom submit key (Enter): - same as above</Text>
+            <TextInput
+              multiline={true}
+              clearTextOnSubmit={true}
+              style={styles.multiline}
+              submitKeyEvents={[{key: 'Enter'}]}
+            />
+            <Text>Custom submit key (CMD + Enter):</Text>
+            <TextInput
+              multiline={true}
+              clearTextOnSubmit={true}
+              style={styles.multiline}
+              submitKeyEvents={[{key: 'Enter', metaKey: true}]}
+            />
+            <Text>Custom submit key (Shift + Enter):</Text>
+            <TextInput
+              multiline={true}
+              clearTextOnSubmit={true}
+              style={styles.multiline}
+              submitKeyEvents={[{key: 'Enter', shiftKey: true}]}
+            />
+          </View>
+        );
+      },
+    },
+    {
+      title:
+        'onDragEnter, onDragLeave and onDrop - Single- & MultiLineTextInput',
+      render: function (): React.Node {
+        return <OnDragEnterOnDragLeaveOnDrop />;
+      },
+    },
+    {
+      title: 'onPaste - MultiLineTextInput',
+      render: function (): React.Node {
+        return <OnPaste />;
+      },
+    },
+    {
+      title: 'Cursor color',
+      render: function (): React.Node {
+        return (
+          <View>
+            <TextInput
+              placeholder="Single line"
+              cursorColor="#00FF00"
+              placeholderTextColor="grey"
+              style={[
+                styles.default,
+                {backgroundColor: 'black', color: 'white', marginBottom: 4},
+              ]}
+            />
+            <TextInput
+              multiline={true}
+              placeholder="Multiline"
+              cursorColor="#00FF00"
+              placeholderTextColor="grey"
+              style={[
+                styles.default,
+                {backgroundColor: 'black', color: 'white', marginBottom: 4},
+              ]}
+            />
+            <TextInput
+              placeholder="Single line with selection color"
+              cursorColor="#00FF00"
+              selectionColor="yellow"
+              placeholderTextColor="grey"
+              style={[
+                styles.default,
+                {backgroundColor: 'black', color: 'white', marginBottom: 4},
+              ]}
+            />
+            <TextInput
+              multiline={true}
+              placeholder="Multiline with selection color"
+              cursorColor="#00FF00"
+              selectionColor="yellow"
+              placeholderTextColor="grey"
+              style={[
+                styles.default,
+                {backgroundColor: 'black', color: 'white'},
+              ]}
+            />
+          </View>
+        );
+      },
+    },
+  );
+}
+// macOS]
 
 module.exports = ({
   displayName: (undefined: ?string),

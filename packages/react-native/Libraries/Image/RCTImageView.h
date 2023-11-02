@@ -7,7 +7,7 @@
 
 #import <React/RCTResizeMode.h>
 #import <React/RCTView.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 @class RCTBridge;
 @class RCTImageSource;
@@ -24,4 +24,7 @@
 @property (nonatomic, assign) RCTResizeMode resizeMode;
 @property (nonatomic, copy) NSString *internal_analyticTag;
 
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic, copy) NSColor *tintColor;
+#endif // macOS]
 @end

@@ -6,18 +6,21 @@
  */
 
 #import <React/RCTComponent.h>
+#import <React/RCTEventDispatcher.h> // [macOS]
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RCTTextView : UIView
+@interface RCTTextView : RCTUIView // [macOS]
+
+- (instancetype)initWithEventDispatcher:(id<RCTEventDispatcherProtocol>)eventDispatcher; // [macOS]
 
 @property (nonatomic, assign) BOOL selectable;
 
 - (void)setTextStorage:(NSTextStorage *)textStorage
           contentFrame:(CGRect)contentFrame
-       descendantViews:(NSArray<UIView *> *)descendantViews;
+       descendantViews:(NSArray<RCTPlatformView *> *)descendantViews; // [macOS]
 
 /**
  * (Experimental and unused for Paper) Pointer event handlers.

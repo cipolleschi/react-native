@@ -30,6 +30,7 @@ export type Props<ItemT> = {
   horizontal: ?boolean,
   index: number,
   inversionStyle: ViewStyleProp,
+  isSelected: ?boolean, // [macOS]
   item: ItemT,
   onCellLayout?: (event: LayoutEvent, cellKey: string, index: number) => void,
   onCellFocusCapture?: (event: FocusEvent) => void,
@@ -128,6 +129,7 @@ export default class CellRenderer<ItemT> extends React.Component<
     ListItemComponent: any,
     item: ItemT,
     index: number,
+    isSelected: ?boolean, // [macOS]
   ): React.Node {
     if (renderItem && ListItemComponent) {
       console.warn(
@@ -154,6 +156,7 @@ export default class CellRenderer<ItemT> extends React.Component<
       return renderItem({
         item,
         index,
+        isSelected, // [macOS]
         separators: this._separators,
       });
     }
@@ -174,6 +177,7 @@ export default class CellRenderer<ItemT> extends React.Component<
       item,
       index,
       inversionStyle,
+      isSelected, // [macOS]
       onCellFocusCapture,
       onCellLayout,
       renderItem,
@@ -183,6 +187,7 @@ export default class CellRenderer<ItemT> extends React.Component<
       ListItemComponent,
       item,
       index,
+      isSelected, // [macOS]
     );
 
     // NOTE: that when this is a sticky header, `onLayout` will get automatically extracted and

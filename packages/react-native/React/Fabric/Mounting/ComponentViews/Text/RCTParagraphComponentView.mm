@@ -8,7 +8,10 @@
 #import "RCTParagraphComponentView.h"
 #import "RCTParagraphComponentAccessibilityProvider.h"
 
+#if !TARGET_OS_OSX // [macOS]
 #import <MobileCoreServices/UTCoreTypes.h>
+#endif // [macOS]
+
 #import <react/renderer/components/text/ParagraphComponentDescriptor.h>
 #import <react/renderer/components/text/ParagraphProps.h>
 #import <react/renderer/components/text/ParagraphState.h>
@@ -28,7 +31,9 @@ using namespace facebook::react;
   ParagraphShadowNode::ConcreteState::Shared _state;
   ParagraphAttributes _paragraphAttributes;
   RCTParagraphComponentAccessibilityProvider *_accessibilityProvider;
+#if !TARGET_OS_OSX // [macOS]
   UILongPressGestureRecognizer *_longPressGestureRecognizer;
+#endif // [macOS]
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -37,8 +42,10 @@ using namespace facebook::react;
     static const auto defaultProps = std::make_shared<const ParagraphProps>();
     _props = defaultProps;
 
-    self.opaque = NO;
+#if !TARGET_OS_OSX  // [macOS]
     self.contentMode = UIViewContentModeRedraw;
+    self.opaque = NO;
+#endif  // [macOS]
   }
 
   return self;
@@ -79,25 +86,27 @@ using namespace facebook::react;
       concreteComponentDescriptorProvider<TextComponentDescriptor>()};
 }
 
-- (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
+- (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
 {
-  const auto &oldParagraphProps = static_cast<ParagraphProps const &>(*_props);
-  const auto &newParagraphProps = static_cast<ParagraphProps const &>(*props);
+  const auto &oldParagraphProps = static_cast<const ParagraphProps &>(*_props);
+  const auto &newParagraphProps = static_cast<const ParagraphProps &>(*props);
 
   _paragraphAttributes = newParagraphProps.paragraphAttributes;
 
   if (newParagraphProps.isSelectable != oldParagraphProps.isSelectable) {
+#if !TARGET_OS_OSX // [macOS]
     if (newParagraphProps.isSelectable) {
       [self enableContextMenu];
     } else {
       [self disableContextMenu];
     }
+#endif // [macOS]
   }
 
   [super updateProps:props oldProps:oldProps];
 }
 
-- (void)updateState:(State::Shared const &)state oldState:(State::Shared const &)oldState
+- (void)updateState:(const State::Shared &)state oldState:(const State::Shared &)oldState
 {
   _state = std::static_pointer_cast<ParagraphShadowNode::ConcreteState const>(state);
   [self setNeedsDisplay];
@@ -145,9 +154,10 @@ using namespace facebook::react;
   return NO;
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (NSArray *)accessibilityElements
 {
-  const auto &paragraphProps = static_cast<ParagraphProps const &>(*_props);
+  const auto &paragraphProps = static_cast<const ParagraphProps &>(*_props);
 
   // If the component is not `accessible`, we return an empty array.
   // We do this because logically all nested <Text> components represent the content of the <Paragraph> component;
@@ -177,6 +187,7 @@ using namespace facebook::react;
 {
   return [super accessibilityTraits] | UIAccessibilityTraitStaticText;
 }
+#endif // [macOS]
 
 #pragma mark - RCTTouchableComponentViewProtocol
 
@@ -207,6 +218,7 @@ using namespace facebook::react;
 
 #pragma mark - Context Menu
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)enableContextMenu
 {
   _longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
@@ -238,22 +250,27 @@ using namespace facebook::react;
   [menuController setMenuVisible:YES animated:YES];
 #endif
 }
+#endif // [macOS]
 
 - (BOOL)canBecomeFirstResponder
 {
-  const auto &paragraphProps = static_cast<ParagraphProps const &>(*_props);
+  const auto &paragraphProps = static_cast<const ParagraphProps &>(*_props);
   return paragraphProps.isSelectable;
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender
 {
-  const auto &paragraphProps = static_cast<ParagraphProps const &>(*_props);
+  const auto &paragraphProps = static_cast<const ParagraphProps &>(*_props);
 
   if (paragraphProps.isSelectable && action == @selector(copy:)) {
     return YES;
   }
 
+#if !TARGET_OS_OSX // [macOS]
   return [self.nextResponder canPerformAction:action withSender:sender];
+#else  // [macOS
+  return NO;
+#endif // macOS]
 }
 
 - (void)copy:(id)sender
@@ -272,8 +289,14 @@ using namespace facebook::react;
 
   [item setObject:attributedText.string forKey:(id)kUTTypeUTF8PlainText];
 
+#if !TARGET_OS_OSX // [macOS]
   UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
   pasteboard.items = @[ item ];
+#else // [macOS
+  NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+  [pasteboard clearContents];
+  [pasteboard setData:rtf forType:NSPasteboardTypeRTFD];
+#endif // macOS]
 }
 
 @end

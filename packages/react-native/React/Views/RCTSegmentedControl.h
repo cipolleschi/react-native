@@ -5,11 +5,19 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponent.h>
 
+#if !TARGET_OS_OSX // [macOS]
 @interface RCTSegmentedControl : UISegmentedControl
+#else // [macOS
+@interface RCTSegmentedControl : NSSegmentedControl
+#endif // macOS]
+
+#if TARGET_OS_OSX // [macOS]
+@property (nonatomic, assign, getter = isMomentary) BOOL momentary;
+#endif // [macOS]
 
 @property (nonatomic, copy) NSArray<NSString *> *values;
 @property (nonatomic, assign) NSInteger selectedIndex;

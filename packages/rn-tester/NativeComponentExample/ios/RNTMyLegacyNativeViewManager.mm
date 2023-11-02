@@ -39,8 +39,8 @@ RCT_CUSTOM_VIEW_PROPERTY(cornerRadius, CGFloat, RNTLegacyView)
 
 RCT_EXPORT_METHOD(changeBackgroundColor : (nonnull NSNumber *)reactTag color : (NSString *)color)
 {
-  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
-    UIView *view = viewRegistry[reactTag];
+  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) { // [macOS]
+    RCTUIView *view = viewRegistry[reactTag]; // [macOS]
     if (!view || ![view isKindOfClass:[RNTLegacyView class]]) {
       RCTLogError(@"Cannot find RNTLegacyView with tag #%@", reactTag);
       return;
@@ -53,18 +53,20 @@ RCT_EXPORT_METHOD(changeBackgroundColor : (nonnull NSNumber *)reactTag color : (
     [scanner setScanLocation:1]; // bypass '#' character
     [scanner scanHexInt:&rgbValue];
 
-    UIColor *newColor = [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16) / 255.0
-                                        green:((rgbValue & 0xFF00) >> 8) / 255.0
-                                         blue:(rgbValue & 0xFF) / 255.0
-                                        alpha:1.0];
+    // [macOS
+    RCTUIColor *newColor = [RCTUIColor colorWithRed:((rgbValue & 0xFF0000) >> 16) / 255.0
+                                              green:((rgbValue & 0xFF00) >> 8) / 255.0
+                                               blue:(rgbValue & 0xFF) / 255.0
+                                              alpha:1.0];
+    // macOS]
     view.backgroundColor = newColor;
   }];
 }
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
   RNTLegacyView *view = [[RNTLegacyView alloc] init];
-  view.backgroundColor = UIColor.redColor;
+  view.backgroundColor = RCTUIColor.redColor; // [macOS]
   return view;
 }
 

@@ -8,7 +8,7 @@
 #import "RCTClipboard.h"
 
 #import <FBReactNativeSpec/FBReactNativeSpec.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import "CoreModulesPlugins.h"
 
@@ -28,14 +28,25 @@ RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(setString : (NSString *)content)
 {
+#if !TARGET_OS_OSX // [macOS]
   UIPasteboard *clipboard = [UIPasteboard generalPasteboard];
   clipboard.string = (content ?: @"");
+#else // [macOS
+  NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+  [pasteboard clearContents];
+  [pasteboard setString:(content ? : @"") forType:NSPasteboardTypeString];
+#endif // macOS]
 }
 
 RCT_EXPORT_METHOD(getString : (RCTPromiseResolveBlock)resolve reject : (__unused RCTPromiseRejectBlock)reject)
 {
+#if !TARGET_OS_OSX // [macOS]
   UIPasteboard *clipboard = [UIPasteboard generalPasteboard];
   resolve((clipboard.string ?: @""));
+#else // [macOS
+  NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+  resolve(([pasteboard stringForType:NSPasteboardTypeString] ? : @""));
+#endif // macOS]
 }
 
 - (std::shared_ptr<TurboModule>)getTurboModule:(const ObjCTurboModule::InitParams &)params

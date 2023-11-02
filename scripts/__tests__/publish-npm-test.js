@@ -62,6 +62,14 @@ describe('publish-npm', () => {
     jest.resetAllMocks();
   });
 
+  describe('publish-npm.js', () => {
+    it('Fails when invalid build type is passed', () => {
+      expect(() => publishNpm('invalid')).toThrowError(
+        'Unsupported build type: invalid',
+      );
+    });
+  });
+
   describe('dry-run', () => {
     it('should set version and not publish', () => {
       publishNpm('dry-run');
@@ -88,6 +96,7 @@ describe('publish-npm', () => {
 
       publishNpm('nightly');
 
+      /* [macOS We skip Android Artifact and NPM Publish on React Native macOS
       expect(publishAndroidArtifactsToMavenMock).toHaveBeenCalledWith(
         expectedVersion,
         true,
@@ -100,6 +109,7 @@ describe('publish-npm', () => {
         `Published to npm ${expectedVersion}`,
       );
       expect(exitMock).toHaveBeenCalledWith(0);
+      macOS] */
     });
 
     it('should fail to set version', () => {
@@ -139,6 +149,7 @@ describe('publish-npm', () => {
 
       publishNpm('release');
 
+      /* [macOS We skip Android Artifact and NPM Publish on React Native macOS
       const expectedVersion = '0.81.1';
       expect(publishAndroidArtifactsToMavenMock).toHaveBeenCalledWith(
         expectedVersion,
@@ -153,6 +164,7 @@ describe('publish-npm', () => {
       );
       expect(exitMock).toHaveBeenCalledWith(0);
       expect(execMock.mock.calls).toHaveLength(1);
+      macOS] */
     });
 
     it('should publish latest stable', () => {
@@ -163,6 +175,7 @@ describe('publish-npm', () => {
 
       publishNpm('release');
 
+      /* [macOS We skip Android Artifact and NPM Publish on React Native macOS
       const expectedVersion = '0.81.1';
       expect(publishAndroidArtifactsToMavenMock).toHaveBeenCalledWith(
         expectedVersion,
@@ -177,6 +190,7 @@ describe('publish-npm', () => {
       );
       expect(exitMock).toHaveBeenCalledWith(0);
       expect(execMock.mock.calls).toHaveLength(1);
+      macOS] */
     });
 
     it('should fail to publish latest stable', () => {
@@ -187,6 +201,7 @@ describe('publish-npm', () => {
 
       publishNpm('release');
 
+      /* [macOS We skip Android Artifact and NPM Publish on React Native macOS
       const expectedVersion = '0.81.1';
       expect(publishAndroidArtifactsToMavenMock).toHaveBeenCalledWith(
         expectedVersion,
@@ -199,6 +214,7 @@ describe('publish-npm', () => {
       expect(echoMock).toHaveBeenCalledWith(`Failed to publish package to npm`);
       expect(exitMock).toHaveBeenCalledWith(1);
       expect(execMock.mock.calls).toHaveLength(1);
+      macOS] */
     });
 
     it('should publish next', () => {
@@ -209,6 +225,7 @@ describe('publish-npm', () => {
 
       publishNpm('release');
 
+      /* [macOS We skip Android Artifact and NPM Publish on React Native macOS
       const expectedVersion = '0.81.0-rc.4';
       expect(publishAndroidArtifactsToMavenMock).toHaveBeenCalledWith(
         expectedVersion,
@@ -223,6 +240,7 @@ describe('publish-npm', () => {
       );
       expect(exitMock).toHaveBeenCalledWith(0);
       expect(execMock.mock.calls).toHaveLength(1);
+      macOS] */
     });
   });
 });

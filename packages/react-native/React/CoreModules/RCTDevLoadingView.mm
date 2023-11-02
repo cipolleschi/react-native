@@ -15,8 +15,10 @@
 #import <React/RCTConstants.h>
 #import <React/RCTConvert.h>
 #import <React/RCTDefines.h>
+#import <React/RCTDevSettings.h> // [macOS]
 #import <React/RCTDevLoadingViewSetEnabled.h>
 #import <React/RCTUtils.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import "CoreModulesPlugins.h"
 
@@ -28,8 +30,13 @@ using namespace facebook::react;
 #if RCT_DEV_MENU
 
 @implementation RCTDevLoadingView {
+#if !TARGET_OS_OSX // [macOS]
   UIWindow *_window;
   UILabel *_label;
+#else // [macOS
+  NSWindow *_window;
+  NSTextField *_label;
+#endif // macOS]
   NSDate *_showDate;
   BOOL _hiding;
   dispatch_block_t _initialMessageBlock;
@@ -91,7 +98,7 @@ RCT_EXPORT_MODULE()
   [self performSelector:@selector(hide) withObject:nil afterDelay:delay];
 }
 
-- (void)showMessage:(NSString *)message color:(UIColor *)color backgroundColor:(UIColor *)backgroundColor
+- (void)showMessage:(NSString *)message color:(RCTUIColor *)color backgroundColor:(RCTUIColor *)backgroundColor // [macOS]
 {
   if (!RCTDevLoadingViewGetEnabled() || _hiding) {
     return;
@@ -114,6 +121,7 @@ RCT_EXPORT_MODULE()
   dispatch_async(dispatch_get_main_queue(), ^{
     self->_showDate = [NSDate date];
     if (!self->_window && !RCTRunningInTestEnvironment()) {
+#if !TARGET_OS_OSX // [macOS]
       CGSize screenSize = [UIScreen mainScreen].bounds.size;
 
       UIWindow *window = RCTSharedApplication().keyWindow;
@@ -129,8 +137,28 @@ RCT_EXPORT_MODULE()
 
       self->_label.font = [UIFont monospacedDigitSystemFontOfSize:12.0 weight:UIFontWeightRegular];
       self->_label.textAlignment = NSTextAlignmentCenter;
+#else // [macOS
+      NSRect screenFrame = [NSScreen mainScreen].visibleFrame;
+      self->_window = [[NSPanel alloc] initWithContentRect:NSMakeRect(screenFrame.origin.x + round((screenFrame.size.width - 375) / 2), screenFrame.size.height - 20, 375, 19)
+                                                 styleMask:NSWindowStyleMaskBorderless
+                                                   backing:NSBackingStoreBuffered
+                                                     defer:YES];
+      self->_window.releasedWhenClosed = NO;
+      self->_window.backgroundColor = [NSColor clearColor];
+
+      NSTextField *label = [[NSTextField alloc] initWithFrame:self->_window.contentView.bounds];
+      label.alignment = NSTextAlignmentCenter;
+      label.bezeled = NO;
+      label.editable = NO;
+      label.selectable = NO;
+      label.wantsLayer = YES;
+      label.layer.cornerRadius = label.frame.size.height / 3;
+      self->_label = label;
+      [[self->_window contentView] addSubview:label];
+#endif // macOS]
     }
 
+#if !TARGET_OS_OSX // [macOS]
     self->_label.text = message;
     self->_label.textColor = color;
 
@@ -139,6 +167,12 @@ RCT_EXPORT_MODULE()
 
     UIWindowScene *scene = (UIWindowScene *)RCTSharedApplication().connectedScenes.anyObject;
     self->_window.windowScene = scene;
+#else // [macOS
+    self->_label.stringValue = message;
+    self->_label.textColor = color;
+    self->_label.backgroundColor = backgroundColor;
+    [self->_window orderFront:nil];
+#endif // macOS]
   });
 
   [self hideBannerAfter:15.0];
@@ -166,6 +200,7 @@ RCT_EXPORT_METHOD(hide)
     const NSTimeInterval MIN_PRESENTED_TIME = 0.6;
     NSTimeInterval presentedTime = [[NSDate date] timeIntervalSinceDate:self->_showDate];
     NSTimeInterval delay = MAX(0, MIN_PRESENTED_TIME - presentedTime);
+#if !TARGET_OS_OSX // [macOS]
     CGRect windowFrame = self->_window.frame;
     [UIView animateWithDuration:0.25
         delay:delay
@@ -179,6 +214,16 @@ RCT_EXPORT_METHOD(hide)
           self->_window = nil;
           self->_hiding = false;
         }];
+#else // [macOS]
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      [NSAnimationContext runAnimationGroup:^(__unused NSAnimationContext *context) {
+        self->_window.animator.alphaValue = 0.0;
+      } completionHandler:^{
+        [self->_window close];
+        self->_window = nil;
+      }];
+    });
+#endif // macOS]
   });
 }
 
@@ -188,16 +233,20 @@ RCT_EXPORT_METHOD(hide)
     // This is an optimization. Since the progress can come in quickly,
     // we want to do the minimum amount of work to update the UI,
     // which is to only update the label text.
+#if !TARGET_OS_OSX // [macOS]
     _label.text = message;
+#else // [macOS
+    self->_label.stringValue = message;
+#endif // macOS]
     return;
   }
 
-  UIColor *color = [UIColor whiteColor];
-  UIColor *backgroundColor = [UIColor colorWithHue:105 saturation:0 brightness:.25 alpha:1];
+  RCTUIColor *color = [RCTUIColor whiteColor]; // [macOS]
+  RCTUIColor *backgroundColor = [RCTUIColor colorWithHue:105 saturation:0 brightness:.25 alpha:1]; // [macOS]
 
   if ([self isDarkModeEnabled]) {
-    color = [UIColor colorWithHue:208 saturation:0.03 brightness:.14 alpha:1];
-    backgroundColor = [UIColor colorWithHue:0 saturation:0 brightness:0.98 alpha:1];
+    color = [RCTUIColor colorWithHue:208 saturation:0.03 brightness:.14 alpha:1]; // [macOS]
+    backgroundColor = [RCTUIColor colorWithHue:0 saturation:0 brightness:0.98 alpha:1]; // [macOS]
   }
 
   [self showMessage:message color:color backgroundColor:backgroundColor];
@@ -205,16 +254,21 @@ RCT_EXPORT_METHOD(hide)
 
 - (void)showOfflineMessage
 {
-  UIColor *color = [UIColor whiteColor];
-  UIColor *backgroundColor = [UIColor blackColor];
+  // [macOS isDarkModeEnabled should only be run on the main thread
+  __weak __typeof(self) weakSelf = self;
+  RCTExecuteOnMainQueue(^{
+    RCTUIColor *color = [RCTUIColor whiteColor]; // [macOS]
+    RCTUIColor *backgroundColor = [RCTUIColor blackColor]; // [macOS]
 
-  if ([self isDarkModeEnabled]) {
-    color = [UIColor blackColor];
-    backgroundColor = [UIColor whiteColor];
-  }
+    if ([weakSelf isDarkModeEnabled]) {
+      color = [RCTUIColor blackColor]; // [macOS]
+      backgroundColor = [RCTUIColor whiteColor]; // [macOS]
+    }
 
-  NSString *message = [NSString stringWithFormat:@"Connect to %@ to develop JavaScript.", RCT_PACKAGER_NAME];
-  [self showMessage:message color:color backgroundColor:backgroundColor];
+    NSString *message = [NSString stringWithFormat:@"Connect to %@ to develop JavaScript.", RCT_PACKAGER_NAME];
+    [weakSelf showMessage:message color:color backgroundColor:backgroundColor];
+  });
+  // macOS]
 }
 
 - (BOOL)isDarkModeEnabled
@@ -273,7 +327,7 @@ RCT_EXPORT_METHOD(hide)
 + (void)setEnabled:(BOOL)enabled
 {
 }
-- (void)showMessage:(NSString *)message color:(UIColor *)color backgroundColor:(UIColor *)backgroundColor
+- (void)showMessage:(NSString *)message color:(RCTUIColor *)color backgroundColor:(RCTUIColor *)backgroundColor // [macOS] RCTUIColor
 {
 }
 - (void)showMessage:(NSString *)message withColor:(NSNumber *)color withBackgroundColor:(NSNumber *)backgroundColor

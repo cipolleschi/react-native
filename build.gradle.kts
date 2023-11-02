@@ -30,7 +30,7 @@ version =
 group = "com.facebook.react"
 
 val ndkPath by extra(System.getenv("ANDROID_NDK"))
-val ndkVersion by extra(System.getenv("ANDROID_NDK_VERSION") ?: "25.1.8937393")
+val ndkVersion by extra(System.getenv("ANDROID_NDK_VERSION") ?: "26.0.10792818")
 val sonatypeUsername = findProperty("SONATYPE_USERNAME")?.toString()
 val sonatypePassword = findProperty("SONATYPE_PASSWORD")?.toString()
 
@@ -74,18 +74,6 @@ tasks.register("build") {
   dependsOn(gradle.includedBuild("react-native-gradle-plugin").task(":build"))
 }
 
-tasks.register("downloadAll") {
-  description = "Download all the depedencies needed locally so they can be cached on CI."
-  dependsOn(gradle.includedBuild("react-native-gradle-plugin").task(":dependencies"))
-  dependsOn(":packages:react-native:ReactAndroid:downloadNdkBuildDependencies")
-  dependsOn(":packages:react-native:ReactAndroid:dependencies")
-  dependsOn(":packages:react-native:ReactAndroid:androidDependencies")
-  dependsOn(":packages:react-native:ReactAndroid:hermes-engine:dependencies")
-  dependsOn(":packages:react-native:ReactAndroid:hermes-engine:androidDependencies")
-  dependsOn(":packages:rn-tester:android:app:dependencies")
-  dependsOn(":packages:rn-tester:android:app:androidDependencies")
-}
-
 tasks.register("publishAllInsideNpmPackage") {
   description =
       "Publish all the artifacts to be available inside the NPM package in the `android` folder."
@@ -118,11 +106,11 @@ if (project.findProperty("react.internal.useHermesNightly")?.toString()?.toBoole
       """
       ********************************************************************************
       INFO: You're using Hermes from nightly as you set
-      
+
       react.internal.useHermesNightly=true
-      
+
       in the ./gradle.properties file.
-      
+
       That's fine for local development, but you should not commit this change.
       ********************************************************************************
   """

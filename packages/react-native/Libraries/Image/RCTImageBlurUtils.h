@@ -6,7 +6,7 @@
  */
 
 #import <Accelerate/Accelerate.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTDefines.h>
 

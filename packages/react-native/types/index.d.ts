@@ -51,7 +51,7 @@
 //                 Mateusz Wit <https://github.com/MateWW>
 //                 Saad Najmi <https://github.com/saadnajmi>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
-// Minimum TypeScript Version: 4.1
+// Minimum TypeScript Version: 4.8
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -116,7 +116,7 @@ export * from '../Libraries/LayoutAnimation/LayoutAnimation';
 export * from '../Libraries/Linking/Linking';
 export * from '../Libraries/Lists/FlatList';
 export * from '../Libraries/Lists/SectionList';
-export * from '@react-native/virtualized-lists';
+export * from '@react-native-mac/virtualized-lists'; // [macOS]
 export * from '../Libraries/LogBox/LogBox';
 export * from '../Libraries/Modal/Modal';
 export * as Systrace from '../Libraries/Performance/Systrace';
@@ -131,6 +131,7 @@ export * from '../Libraries/ReactNative/requireNativeComponent';
 export * from '../Libraries/Settings/Settings';
 export * from '../Libraries/Share/Share';
 export * from '../Libraries/StyleSheet/PlatformColorValueTypesIOS';
+export * from '../Libraries/StyleSheet/PlatformColorValueTypesMacOS'; // [macOS]
 export * from '../Libraries/StyleSheet/PlatformColorValueTypes';
 export * from '../Libraries/StyleSheet/StyleSheet';
 export * from '../Libraries/StyleSheet/StyleSheetTypes';

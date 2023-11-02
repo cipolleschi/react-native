@@ -169,7 +169,7 @@
 
   NSNumber *tag = self.reactTag;
 
-  [_bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+  [_bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) { // [macOS]
     RCTBaseTextInputView *baseTextInputView = (RCTBaseTextInputView *)viewRegistry[tag];
     if (!baseTextInputView) {
       return;
@@ -222,7 +222,19 @@
 
   if (!_textStorage) {
     _textContainer = [NSTextContainer new];
+#if !TARGET_OS_OSX // [macOS]
     _textContainer.lineFragmentPadding = 0.0; // Note, the default value is 5.
+#else // [macOS
+    // macOS has a bug in multiline where setting the real text view's lineFragmentPadding to 0 will
+    // cause the scroll view to scroll to top when inserting a newline at the bottom of
+    // a NSTextView when it has more rows than can be displayed on screen. The shadow needs to match
+    // the NSTextView that it is tracking.
+    if (_maximumNumberOfLines != 1) {
+      _textContainer.lineFragmentPadding = 1;
+    } else {
+      _textContainer.lineFragmentPadding = 0.0; // Note, the default value is 5.
+    }
+#endif // macOS]
     _layoutManager = [NSLayoutManager new];
     [_layoutManager addTextContainer:_textContainer];
     _textStorage = [NSTextStorage new];
@@ -236,8 +248,13 @@
   CGSize size = [_layoutManager usedRectForTextContainer:_textContainer].size;
 
   return (CGSize){
+#if !TARGET_OS_OSX // [macOS]
       MAX(minimumSize.width, MIN(RCTCeilPixelValue(size.width), maximumSize.width)),
       MAX(minimumSize.height, MIN(RCTCeilPixelValue(size.height), maximumSize.height))};
+#else // [macOS
+    MAX(minimumSize.width, MIN(RCTCeilPixelValue(size.width, [self scale]), maximumSize.width)),
+    MAX(minimumSize.height, MIN(RCTCeilPixelValue(size.height, [self scale]), maximumSize.height))};
+#endif // macOS]
 }
 
 - (CGFloat)lastBaselineForSize:(CGSize)size
@@ -259,7 +276,7 @@
 }
 
 static YGSize RCTBaseTextInputShadowViewMeasure(
-    YGNodeRef node,
+    YGNodeConstRef node,
     float width,
     YGMeasureMode widthMode,
     float height,
@@ -302,7 +319,7 @@ static YGSize RCTBaseTextInputShadowViewMeasure(
       RCTYogaFloatFromCoreGraphicsFloat(measuredSize.width), RCTYogaFloatFromCoreGraphicsFloat(measuredSize.height)};
 }
 
-static float RCTTextInputShadowViewBaseline(YGNodeRef node, const float width, const float height)
+static float RCTTextInputShadowViewBaseline(YGNodeConstRef node, const float width, const float height)
 {
   RCTBaseTextInputShadowView *shadowTextView = (__bridge RCTBaseTextInputShadowView *)YGNodeGetContext(node);
 

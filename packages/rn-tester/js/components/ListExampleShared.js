@@ -23,6 +23,7 @@ const {
   Text,
   TextInput,
   View,
+  PlatformColor, // [macOS]
 } = require('react-native');
 
 export type Item = {
@@ -71,13 +72,16 @@ class ItemComponent extends React.PureComponent<{
   onShowUnderlay?: () => void,
   onHideUnderlay?: () => void,
   textSelectable?: ?boolean,
+  isSelected?: ?boolean, // [macOS]
   ...
 }> {
   _onPress = () => {
     this.props.onPress(this.props.item.key);
   };
   render(): React.Node {
-    const {fixedHeight, horizontal, item, textSelectable} = this.props;
+    // [macOS
+    const {fixedHeight, horizontal, item, textSelectable, isSelected} =
+      this.props; // macOS]
     const itemHash = Math.abs(hashCode(item.title));
     const imgSource = THUMB_URLS[itemHash % THUMB_URLS.length];
     return (
@@ -91,10 +95,11 @@ class ItemComponent extends React.PureComponent<{
             styles.row,
             horizontal && {width: HORIZ_WIDTH},
             fixedHeight && {height: ITEM_HEIGHT},
+            isSelected && styles.selectedItem, // [macOS]
           ]}>
           {!item.noImage && <Image style={styles.thumb} source={imgSource} />}
           <Text
-            style={styles.text}
+            style={[styles.text, isSelected && styles.selectedItemText]} // [macOS]
             selectable={textSelectable}
             numberOfLines={horizontal || fixedHeight ? 3 : undefined}>
             {item.title} - {item.text}
@@ -346,6 +351,13 @@ const styles = StyleSheet.create({
       margin: -10,
       transform: [{scale: 0.5}],
     },
+    // [macOS
+    macos: {
+      top: 4,
+      margin: -10,
+      transform: [{scale: 0.5}],
+    },
+    // macOS]
   }),
   stacked: {
     alignItems: 'center',
@@ -371,6 +383,22 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
   },
+  // [macOS
+  selectedItem: {
+    backgroundColor: Platform.select({
+      macos: PlatformColor('selectedContentBackgroundColor'),
+      default: 'blue',
+    }),
+  },
+  selectedItemText: {
+    // This was the closest UI Element color that looked right...
+    // https://developer.apple.com/documentation/appkit/nscolor/ui_element_colors
+    color: Platform.select({
+      macos: PlatformColor('selectedMenuItemTextColor'),
+      default: 'white',
+    }),
+  },
+  // macOS]
   loadingContainer: {
     alignItems: 'center',
     justifyContent: 'center',

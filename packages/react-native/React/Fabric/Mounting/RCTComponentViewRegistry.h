@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponentViewDescriptor.h>
 #import <React/RCTComponentViewFactory.h>
@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
  * for given `componentHandle` and with given `tag`.
  * #RefuseSingleUse
  */
-- (RCTComponentViewDescriptor const &)dequeueComponentViewWithComponentHandle:
+- (const RCTComponentViewDescriptor &)dequeueComponentViewWithComponentHandle:
                                           (facebook::react::ComponentHandle)componentHandle
                                                                           tag:(facebook::react::Tag)tag;
 
@@ -42,13 +42,13 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Returns a component view descriptor by given `tag`.
  */
-- (RCTComponentViewDescriptor const &)componentViewDescriptorWithTag:(facebook::react::Tag)tag;
+- (const RCTComponentViewDescriptor &)componentViewDescriptorWithTag:(facebook::react::Tag)tag;
 
 /**
  * Finds a native component view by given `tag`.
  * Returns `nil` if there is no registered component with the `tag`.
  */
-- (nullable UIView<RCTComponentViewProtocol> *)findComponentViewWithTag:(facebook::react::Tag)tag;
+- (nullable RCTUIView<RCTComponentViewProtocol> *)findComponentViewWithTag:(facebook::react::Tag)tag; // [macOS]
 
 @end
 

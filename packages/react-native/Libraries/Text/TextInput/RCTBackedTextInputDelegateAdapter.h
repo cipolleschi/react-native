@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTTextUIKit.h> // [macOS]
 
 #import "RCTBackedTextInputDelegate.h"
 #import "RCTBackedTextInputViewProtocol.h"
@@ -14,11 +14,18 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - RCTBackedTextFieldDelegateAdapter (for UITextField)
 
+@protocol RCTBackedTextInputViewProtocol; // [macOS]
+@protocol RCTBackedTextInputDelegate; // [macOS]
+
 @interface RCTBackedTextFieldDelegateAdapter : NSObject
 
 - (instancetype)initWithTextField:(UITextField<RCTBackedTextInputViewProtocol> *)backedTextInputView;
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)skipNextTextInputDidChangeSelectionEventWithTextRange:(UITextRange *)textRange;
+#else // [macOS
+- (void)skipNextTextInputDidChangeSelectionEventWithTextRange:(NSRange)textRange;
+#endif // macOS]
 - (void)selectedTextRangeWasSet;
 
 @end
@@ -29,7 +36,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithTextView:(UITextView<RCTBackedTextInputViewProtocol> *)backedTextInputView;
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)skipNextTextInputDidChangeSelectionEventWithTextRange:(UITextRange *)textRange;
+#else // [macOS
+- (void)skipNextTextInputDidChangeSelectionEventWithTextRange:(NSRange)textRange;
+#endif // macOS]
 
 @end
 

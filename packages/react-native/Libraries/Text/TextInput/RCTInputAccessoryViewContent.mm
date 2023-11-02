@@ -10,14 +10,14 @@
 #import <React/UIView+React.h>
 
 @implementation RCTInputAccessoryViewContent {
-  UIView *_safeAreaContainer;
+  RCTUIView *_safeAreaContainer; // [macOS]
   NSLayoutConstraint *_heightConstraint;
 }
 
 - (instancetype)init
 {
   if (self = [super init]) {
-    _safeAreaContainer = [UIView new];
+    _safeAreaContainer = [RCTUIView new]; // [macOS]
     [self addSubview:_safeAreaContainer];
 
     // Use autolayout to position the view properly and take into account
@@ -29,10 +29,17 @@
     _heightConstraint = [_safeAreaContainer.heightAnchor constraintEqualToConstant:0];
     _heightConstraint.active = YES;
 
+#if !TARGET_OS_OSX // [macOS]
     [_safeAreaContainer.bottomAnchor constraintEqualToAnchor:self.safeAreaLayoutGuide.bottomAnchor].active = YES;
     [_safeAreaContainer.topAnchor constraintEqualToAnchor:self.safeAreaLayoutGuide.topAnchor].active = YES;
     [_safeAreaContainer.leadingAnchor constraintEqualToAnchor:self.safeAreaLayoutGuide.leadingAnchor].active = YES;
     [_safeAreaContainer.trailingAnchor constraintEqualToAnchor:self.safeAreaLayoutGuide.trailingAnchor].active = YES;
+#else // [macOS
+    [_safeAreaContainer.bottomAnchor constraintEqualToAnchor:self.bottomAnchor].active = YES;
+    [_safeAreaContainer.topAnchor constraintEqualToAnchor:self.topAnchor].active = YES;
+    [_safeAreaContainer.leadingAnchor constraintEqualToAnchor:self.leadingAnchor].active = YES;
+    [_safeAreaContainer.trailingAnchor constraintEqualToAnchor:self.trailingAnchor].active = YES;
+#endif // macOS]
   }
   return self;
 }
@@ -56,13 +63,13 @@
   [self layoutIfNeeded];
 }
 
-- (void)insertReactSubview:(UIView *)subview atIndex:(NSInteger)index
+- (void)insertReactSubview:(RCTUIView *)subview atIndex:(NSInteger)index // [macOS]
 {
   [super insertReactSubview:subview atIndex:index];
   [_safeAreaContainer insertSubview:subview atIndex:index];
 }
 
-- (void)removeReactSubview:(UIView *)subview
+- (void)removeReactSubview:(RCTUIView *)subview // [macOS]
 {
   [super removeReactSubview:subview];
   [subview removeFromSuperview];

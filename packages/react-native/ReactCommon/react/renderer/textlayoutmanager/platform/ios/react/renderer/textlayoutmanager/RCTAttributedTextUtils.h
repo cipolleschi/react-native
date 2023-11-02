@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #include <react/renderer/attributedstring/AttributedString.h>
 #include <react/renderer/attributedstring/AttributedStringBox.h>
@@ -23,16 +23,16 @@ NSString *const RCTTextAttributesAccessibilityRoleAttributeName = @"Accessibilit
  * Creates `NSTextAttributes` from given `facebook::react::TextAttributes`
  */
 NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(
-    facebook::react::TextAttributes const &textAttributes);
+    const facebook::react::TextAttributes &textAttributes);
 
 /*
  * Conversions amond `NSAttributedString`, `AttributedString` and `AttributedStringBox`.
  */
 NSAttributedString *RCTNSAttributedStringFromAttributedString(
-    facebook::react::AttributedString const &attributedString);
+    const facebook::react::AttributedString &attributedString);
 
 NSAttributedString *RCTNSAttributedStringFromAttributedStringBox(
-    facebook::react::AttributedStringBox const &attributedStringBox);
+    const facebook::react::AttributedStringBox &attributedStringBox);
 
 facebook::react::AttributedStringBox RCTAttributedStringBoxFromNSAttributedString(
     NSAttributedString *nsAttributedString);

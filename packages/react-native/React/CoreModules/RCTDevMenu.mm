@@ -12,7 +12,9 @@
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTDefines.h>
 #import <React/RCTDevSettings.h>
+#if !TARGET_OS_OSX // [macOS]
 #import <React/RCTKeyCommands.h>
+#endif // [macOS]
 #import <React/RCTLog.h>
 #import <React/RCTReloadCommand.h>
 #import <React/RCTUtils.h>
@@ -25,16 +27,26 @@
 
 NSString *const RCTShowDevMenuNotification = @"RCTShowDevMenuNotification";
 
+#if !TARGET_OS_OSX // [macOS]
+
+// [macOS
+typedef void (*MotionEndedWithEventImpType)(id self, SEL selector, UIEventSubtype motion, UIEvent *event);
+static MotionEndedWithEventImpType RCTOriginalUIWindowMotionEndedWithEventImp = nil;
+// macOS]
+
 @implementation UIWindow (RCTDevMenu)
 
 - (void)RCT_motionEnded:(__unused UIEventSubtype)motion withEvent:(UIEvent *)event
 {
+  RCTOriginalUIWindowMotionEndedWithEventImp(self, @selector(motionEnded:withEvent:), motion, event); // [macOS]
   if (event.subtype == UIEventSubtypeMotionShake) {
     [[NSNotificationCenter defaultCenter] postNotificationName:RCTShowDevMenuNotification object:nil];
   }
 }
 
 @end
+
+#endif // [macOS]
 
 @implementation RCTDevMenuItem {
   RCTDevMenuItemTitleBlock _titleBlock;
@@ -83,14 +95,20 @@ RCT_NOT_IMPLEMENTED(-(instancetype)init)
 
 @end
 
+#if !TARGET_OS_OSX // [macOS]
+
 typedef void (^RCTDevMenuAlertActionHandler)(UIAlertAction *action);
+
+#endif // [macOS]
 
 @interface RCTDevMenu () <RCTBridgeModule, RCTInvalidating, NativeDevMenuSpec>
 
 @end
 
 @implementation RCTDevMenu {
+#if !TARGET_OS_OSX // [macOS]
   UIAlertController *_actionSheet;
+#endif // [macOS]
   NSMutableArray<RCTDevMenuItem *> *_extraMenuItems;
 }
 
@@ -103,10 +121,10 @@ RCT_EXPORT_MODULE()
 
 + (void)initialize
 {
+#if !TARGET_OS_OSX // [macOS]
   // We're swizzling here because it's poor form to override methods in a category,
-  // however UIWindow doesn't actually implement motionEnded:withEvent:, so there's
-  // no need to call the original implementation.
-  RCTSwapInstanceMethods([UIWindow class], @selector(motionEnded:withEvent:), @selector(RCT_motionEnded:withEvent:));
+  RCTOriginalUIWindowMotionEndedWithEventImp = (MotionEndedWithEventImpType) RCTSwapInstanceMethods([UIWindow class], @selector(motionEnded:withEvent:), @selector(RCT_motionEnded:withEvent:)); // [macOS]
+#endif // [macOS]
 }
 
 + (BOOL)requiresMainQueueSetup
@@ -191,15 +209,17 @@ RCT_EXPORT_MODULE()
 - (void)invalidate
 {
   _presentedItems = nil;
+#if !TARGET_OS_OSX // [macOS]
   [_actionSheet dismissViewControllerAnimated:YES
                                    completion:^(void){
                                    }];
+#endif // [macOS]
 }
 
 - (void)showOnShake
 {
   if ([((RCTDevSettings *)[_moduleRegistry moduleForName:"DevSettings"]) isShakeToShowDevMenuEnabled]) {
-    for (UIWindow *window in [RCTSharedApplication() windows]) {
+    for (RCTPlatformWindow *window in [RCTSharedApplication() windows]) {
       NSString *recursiveDescription = [window valueForKey:@"recursiveDescription"];
       if ([recursiveDescription containsString:@"RCTView"]) {
         [self show];
@@ -209,6 +229,7 @@ RCT_EXPORT_MODULE()
   }
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)toggle
 {
   if (_actionSheet) {
@@ -225,6 +246,7 @@ RCT_EXPORT_MODULE()
 {
   return _actionSheet != nil;
 }
+#endif // [macOS]
 
 - (void)addItem:(NSString *)title handler:(void (^)(void))handler
 {
@@ -260,37 +282,27 @@ RCT_EXPORT_MODULE()
   if (!devSettings.isProfilingEnabled) {
 #if RCT_ENABLE_INSPECTOR
     if (devSettings.isDeviceDebuggingAvailable) {
-      // For on-device debugging we link out to Flipper.
-      // Since we're assuming Flipper is available, also include the DevTools.
-      // Note: For parity with the Android code.
-      [items addObject:[RCTDevMenuItem
-                           buttonItemWithTitleBlock:^NSString * {
-                             return @"Open Debugger";
-                           }
-                           handler:^{
-                             [RCTInspectorDevServerHelper
-                                          openURL:@"flipper://null/Hermesdebuggerrn?device=React%20Native"
-                                    withBundleURL:bundleManager.bundleURL
-                                 withErrorMessage:@"Failed to open Flipper. Please check that Metro is running."];
-                           }]];
-
-      [items addObject:[RCTDevMenuItem
-                           buttonItemWithTitleBlock:^NSString * {
-                             return @"Open React DevTools";
-                           }
-                           handler:^{
-                             [RCTInspectorDevServerHelper
-                                          openURL:@"flipper://null/React?device=React%20Native"
-                                    withBundleURL:bundleManager.bundleURL
-                                 withErrorMessage:@"Failed to open Flipper. Please check that Metro is running."];
-                           }]];
+      // On-device JS debugging (CDP). Render action to open debugger frontend.
+      [items
+          addObject:
+              [RCTDevMenuItem
+                  buttonItemWithTitleBlock:^NSString * {
+                    return @"Open Debugger";
+                  }
+                  handler:^{
+                    [RCTInspectorDevServerHelper
+                            openDebugger:bundleManager.bundleURL
+                        withErrorMessage:
+                            @"Failed to open debugger. Please check that the dev server is running and reload the app."];
+                  }]];
     }
 #endif
   }
 
   [items addObject:[RCTDevMenuItem
                        buttonItemWithTitleBlock:^NSString * {
-                         return devSettings.isElementInspectorShown ? @"Hide Inspector" : @"Show Inspector";
+                         return devSettings.isElementInspectorShown ? @"Hide Element Inspector"
+                                                                    : @"Show Element Inspector";
                        }
                        handler:^{
                          [devSettings toggleElementInspector];
@@ -313,6 +325,7 @@ RCT_EXPORT_MODULE()
                       return @"Configure Bundler";
                     }
                     handler:^{
+#if !TARGET_OS_OSX // [macOS]
                       UIAlertController *alertController = [UIAlertController
                           alertControllerWithTitle:@"Configure Bundler"
                                            message:@"Provide a custom bundler address, port, and entrypoint."
@@ -369,6 +382,14 @@ RCT_EXPORT_MODULE()
                                                                           return;
                                                                         }]];
                       [RCTPresentedViewController() presentViewController:alertController animated:YES completion:NULL];
+#else // [macOS
+                      NSAlert *alert = [NSAlert new];
+                      [alert setMessageText:@"Change packager location"];
+                      [alert setInformativeText:@"Input packager IP, port and entrypoint"];
+                      [alert addButtonWithTitle:@"Use bundled JS"];
+                      [alert setAlertStyle:NSWarningAlertStyle];
+                      [alert beginSheetModalForWindow:[NSApp keyWindow] completionHandler:nil];
+#endif // macOS]
                     }]];
 
   [items addObjectsFromArray:_extraMenuItems];
@@ -377,6 +398,7 @@ RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(show)
 {
+#if !TARGET_OS_OSX // [macOS]
   if (_actionSheet || RCTRunningInAppExtension()) {
     return;
   }
@@ -409,9 +431,17 @@ RCT_EXPORT_METHOD(show)
   _presentedItems = items;
   [RCTPresentedViewController() presentViewController:_actionSheet animated:YES completion:nil];
 
+#else // [macOS
+  NSMenu *menu = [self menu];
+  NSWindow *window = [NSApp keyWindow];
+  NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseUp location:CGPointMake(0, 0) modifierFlags:0 timestamp:NSTimeIntervalSince1970 windowNumber:[window windowNumber]  context:nil eventNumber:0 clickCount:0 pressure:0.1];
+  [NSMenu popUpContextMenu:menu withEvent:event forView:[window contentView]];
+#endif // macOS]
+
   [_callableJSModules invokeModule:@"RCTNativeAppEventEmitter" method:@"emit" withArgs:@[ @"RCTDevMenuShown" ]];
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (RCTDevMenuAlertActionHandler)alertActionHandlerForDevItem:(RCTDevMenuItem *__nullable)item
 {
   return ^(__unused UIAlertAction *action) {
@@ -422,6 +452,53 @@ RCT_EXPORT_METHOD(show)
     self->_actionSheet = nil;
   };
 }
+#else // [macOS
+- (NSMenu *)menu
+{
+  if ([_bridge.devSettings isSecondaryClickToShowDevMenuEnabled]) {
+    NSMenu *menu = nil;
+    if (_bridge) {
+      NSString *desc = _bridge.bridgeDescription;
+      if (desc.length == 0) {
+        desc = NSStringFromClass([_bridge class]);
+      }
+      NSString *title = [NSString stringWithFormat:@"React Native: Development\n(%@)", desc];
+
+      menu = [NSMenu new];
+
+      NSMutableAttributedString *attributedTitle = [[NSMutableAttributedString alloc]initWithString:title];
+      [attributedTitle setAttributes: @{ NSFontAttributeName : [NSFont menuFontOfSize:0] } range: NSMakeRange(0, [attributedTitle length])];
+      NSMenuItem *titleItem = [NSMenuItem new];
+      [titleItem setAttributedTitle:attributedTitle];
+      [menu addItem:titleItem];
+
+      [menu addItem:[NSMenuItem separatorItem]];
+
+      NSArray<RCTDevMenuItem *> *items = [self _menuItemsToPresent];
+      for (RCTDevMenuItem *item in items) {
+        NSMenuItem *menuItem = [[NSMenuItem alloc] initWithTitle:[item title] action:@selector(menuItemSelected:) keyEquivalent:@""];
+        [menuItem setTarget:self];
+        [menuItem setRepresentedObject:item];
+        [menu addItem:menuItem];
+      }
+    }
+    return menu;
+  }
+  return nil;
+}
+
+-(void)menuItemSelected:(id)sender
+{
+  NSMenuItem *menuItem = (NSMenuItem *)sender;
+  RCTDevMenuItem *item = (RCTDevMenuItem *)[menuItem representedObject];
+  [item callHandler];
+}
+
+- (void)setSecondaryClickToShow:(BOOL)secondaryClickToShow
+{
+  _bridge.devSettings.isSecondaryClickToShowDevMenuEnabled = secondaryClickToShow;
+}
+#endif // macOS]
 
 #pragma mark - deprecated methods and properties
 

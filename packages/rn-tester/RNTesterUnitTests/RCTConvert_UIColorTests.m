@@ -31,9 +31,15 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
 
 - (void)testColor
 {
+#if !TARGET_OS_OSX  // [macOS]
   id json = RCTJSONParse(@"{ \"semantic\": \"lightTextColor\" }", nil);
   UIColor *value = [RCTConvert UIColor:json];
   XCTAssertEqualObjects(value, [UIColor lightTextColor]);
+#else // [macOS
+  id json = RCTJSONParse(@"{ \"semantic\": \"textColor\" }", nil);
+  NSColor *value = [RCTConvert NSColor:json];
+  XCTAssertEqualObjects(value, [NSColor textColor]);
+#endif // macOS]
 }
 
 - (void)testColorFailure
@@ -51,7 +57,7 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
         errorMessage = message;
       });
 
-  UIColor *value = [RCTConvert UIColor:json];
+  RCTUIColor *value = [RCTConvert UIColor:json]; // [macOS]
 
   RCTSetLogFunction(defaultLogFunction);
 
@@ -63,16 +69,17 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
 - (void)testFallbackColor
 {
   id json = RCTJSONParse(@"{ \"semantic\": \"unitTestFallbackColorIOS\" }", nil);
-  UIColor *value = [RCTConvert UIColor:json];
-  XCTAssertTrue(CGColorsAreEqual([value CGColor], [[UIColor blueColor] CGColor]));
+  RCTUIColor *value = [RCTConvert UIColor:json]; // [macOS]
+  XCTAssertTrue(CGColorsAreEqual([value CGColor], [[RCTUIColor blueColor] CGColor])); // [macOS]
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)testDynamicColor
 {
   // 0        == 0x00000000 == black
   // 16777215 == 0x00FFFFFF == white
   id json = RCTJSONParse(@"{ \"dynamic\": { \"light\":0, \"dark\":16777215 } }", nil);
-  UIColor *value = [RCTConvert UIColor:json];
+  RCTUIColor *value = [RCTConvert RCTUIColor:json]; // [macOS]
   XCTAssertNotNil(value);
 
   id savedTraitCollection = [UITraitCollection currentTraitCollection];
@@ -102,7 +109,7 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
   id json = RCTJSONParse(
       @"{ \"dynamic\": { \"light\": { \"semantic\": \"systemRedColor\" }, \"dark\":{ \"semantic\": \"systemBlueColor\" } } }",
       nil);
-  UIColor *value = [RCTConvert UIColor:json];
+  RCTUIColor *value = [RCTConvert UIColor:json]; // [macOS]
   XCTAssertNotNil(value);
 
   id savedTraitCollection = [UITraitCollection currentTraitCollection];
@@ -162,7 +169,6 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
     // Clear Color
     @"clearColor" : @(0x00000000),
   };
-
   id savedTraitCollection = nil;
 
   savedTraitCollection = [UITraitCollection currentTraitCollection];
@@ -172,7 +178,7 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
 
   for (NSString *semanticColor in semanticColors) {
     id json = RCTJSONParse([NSString stringWithFormat:@"{ \"semantic\": \"%@\" }", semanticColor], nil);
-    UIColor *value = [RCTConvert UIColor:json];
+    RCTUIColor *value = [RCTConvert UIColor:json]; // [macOS]
     XCTAssertNotNil(value);
 
     NSNumber *fallback = [semanticColors objectForKey:semanticColor];
@@ -197,5 +203,6 @@ static BOOL CGColorsAreEqual(CGColorRef color1, CGColorRef color2)
 
   [UITraitCollection setCurrentTraitCollection:savedTraitCollection];
 }
+#endif // [macOS]
 
 @end

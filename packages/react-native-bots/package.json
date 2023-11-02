@@ -19,10 +19,16 @@
     "danger": "^11.2.1",
     "eslint": "^8.19.0",
     "lodash.includes": "^4.3.0",
-    "minimatch": "^3.0.4"
+    "minimatch": "^3.0.5"
   },
   "dependencies": {
     "@octokit/rest": "^18.12.0",
     "firebase": "^9.6.5"
+  },
+  "resolutions": {
+    "readable-stream": "^4.0.0"
+  },
+  "_justification": {
+    "readable-stream": "Eliminates dependency on outdated string_decoder component"
   }
 }

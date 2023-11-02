@@ -30,7 +30,8 @@ const styles: StyleSheet = StyleSheet.create({
     justifyContent: 'space-between',
   },
   value: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily:
+      Platform.OS === 'ios' || Platform.OS === 'macos' ? 'Menlo' : 'monospace', // [macOS]
     fontSize: 10,
   },
   type: {

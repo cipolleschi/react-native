@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#if !TARGET_OS_OSX // [macOS]
 #import <UIKit/UIKit.h>
 
 @interface RCTModalHostViewController : UIViewController
@@ -14,3 +15,4 @@
 @property (nonatomic, assign) UIInterfaceOrientationMask supportedInterfaceOrientations;
 
 @end
+#endif // [macOS]

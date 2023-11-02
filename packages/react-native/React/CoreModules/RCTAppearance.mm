@@ -36,6 +36,7 @@ NSString *RCTCurrentOverrideAppearancePreference()
   return sColorSchemeOverride;
 }
 
+#if !TARGET_OS_OSX // [macOS]
 NSString *RCTColorSchemePreference(UITraitCollection *traitCollection)
 {
   static NSDictionary *appearances;
@@ -57,18 +58,56 @@ NSString *RCTColorSchemePreference(UITraitCollection *traitCollection)
     return RCTAppearanceColorSchemeLight;
   }
 
-  traitCollection = traitCollection ?: [UITraitCollection currentTraitCollection];
   return appearances[@(traitCollection.userInterfaceStyle)] ?: RCTAppearanceColorSchemeLight;
-
-  // Default to light on older OS version - same behavior as Android.
-  return RCTAppearanceColorSchemeLight;
 }
+#else // [macOS
+NSString *RCTColorSchemePreference(NSAppearance *appearance)
+{
+  static NSDictionary *appearances;
+  static dispatch_once_t onceToken;
+
+  dispatch_once(&onceToken, ^{
+    appearances = @{
+                    NSAppearanceNameAqua: RCTAppearanceColorSchemeLight,
+                    NSAppearanceNameDarkAqua: RCTAppearanceColorSchemeDark
+                    };
+  });
+
+  if (!sAppearancePreferenceEnabled) {
+    // Return the default if the app doesn't allow different color schemes.
+    return RCTAppearanceColorSchemeLight;
+  }
+
+  appearance = appearance ?: [NSApp effectiveAppearance];
+
+  NSAppearanceName appearanceName = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+  return appearances[appearanceName] ?: RCTAppearanceColorSchemeLight;
+}
+#endif // macOS]
 
 @interface RCTAppearance () <NativeAppearanceSpec>
 @end
 
 @implementation RCTAppearance {
   NSString *_currentColorScheme;
+}
+
+- (instancetype)init
+{
+  if ((self = [super init])) {
+#if !TARGET_OS_OSX // [macOS]
+    UITraitCollection *traitCollection = RCTSharedApplication().delegate.window.traitCollection;
+    _currentColorScheme = RCTColorSchemePreference(traitCollection);
+#else // [macOS
+	NSAppearance *appearance = RCTSharedApplication().appearance;
+	_currentColorScheme = RCTColorSchemePreference(appearance);
+#endif // macOS]
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(appearanceChanged:)
+                                                 name:RCTUserInterfaceStyleDidChangeNotification
+                                               object:nil];
+  }
+  return self;
 }
 
 RCT_EXPORT_MODULE(Appearance)
@@ -90,30 +129,46 @@ RCT_EXPORT_MODULE(Appearance)
 
 RCT_EXPORT_METHOD(setColorScheme : (NSString *)style)
 {
+#if !TARGET_OS_OSX // [macOS]
   UIUserInterfaceStyle userInterfaceStyle = [RCTConvert UIUserInterfaceStyle:style];
   NSArray<__kindof UIWindow *> *windows = RCTSharedApplication().windows;
 
   for (UIWindow *window in windows) {
     window.overrideUserInterfaceStyle = userInterfaceStyle;
   }
+#else // [macOS
+  NSAppearance *appearance = nil;
+  if ([style isEqualToString:@"light"]) {
+    appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+  } else if ([style isEqualToString:@"dark"]) {
+    appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+  }
+  RCTSharedApplication().appearance = appearance;
+#endif // macOS]
 }
 
 RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSString *, getColorScheme)
 {
-  if (_currentColorScheme == nil) {
-    _currentColorScheme = RCTColorSchemePreference(nil);
-  }
   return _currentColorScheme;
 }
+
 
 - (void)appearanceChanged:(NSNotification *)notification
 {
   NSDictionary *userInfo = [notification userInfo];
+#if !TARGET_OS_OSX // [macOS]
   UITraitCollection *traitCollection = nil;
   if (userInfo) {
     traitCollection = userInfo[RCTUserInterfaceStyleDidChangeNotificationTraitCollectionKey];
   }
   NSString *newColorScheme = RCTColorSchemePreference(traitCollection);
+#else // [macOS
+  NSAppearance *appearance = nil;
+  if (userInfo) {
+    appearance = userInfo[RCTUserInterfaceStyleDidChangeNotificationAppearanceKey];
+  }
+  NSString *newColorScheme = RCTColorSchemePreference(appearance);
+#endif // macOS]
   if (![_currentColorScheme isEqualToString:newColorScheme]) {
     _currentColorScheme = newColorScheme;
     [self sendEventWithName:@"appearanceChanged" body:@{@"colorScheme" : newColorScheme}];
@@ -129,14 +184,15 @@ RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSString *, getColorScheme)
 
 - (void)startObserving
 {
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(appearanceChanged:)
-                                               name:RCTUserInterfaceStyleDidChangeNotification
-                                             object:nil];
 }
 
 - (void)stopObserving
 {
+}
+
+- (void)invalidate
+{
+  [super invalidate];
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 

@@ -42,23 +42,27 @@ RCT_EXPORT_VIEW_PROPERTY(selectable, BOOL)
 
   [bridge.uiManager.observerCoordinator addObserver:self];
 
+#if !TARGET_OS_OSX // [macOS]
   [[NSNotificationCenter defaultCenter] addObserver:self
                                            selector:@selector(handleDidUpdateMultiplierNotification)
                                                name:@"RCTAccessibilityManagerDidUpdateMultiplierNotification"
                                              object:[bridge moduleForName:@"AccessibilityManager"
                                                         lazilyLoadIfNecessary:YES]];
+#endif // [macOS]
 }
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
-  return [RCTTextView new];
+  return [[RCTTextView alloc] initWithEventDispatcher:self.bridge.eventDispatcher]; // [macOS]
 }
 
 - (RCTShadowView *)shadowView
 {
   RCTTextShadowView *shadowView = [[RCTTextShadowView alloc] initWithBridge:self.bridge];
+#if !TARGET_OS_OSX // [macOS]
   shadowView.textAttributes.fontSizeMultiplier =
       [[[self.bridge moduleForName:@"AccessibilityManager"] valueForKey:@"multiplier"] floatValue];
+#endif // [macOS]
   [_shadowViews addObject:shadowView];
   return shadowView;
 }

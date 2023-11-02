@@ -8,7 +8,9 @@
 #import <React/RCTBridge.h>
 #import <React/RCTSurfacePresenterStub.h>
 #import <React/RCTSurfaceView.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
+
+#if !TARGET_OS_OSX // [macOS]
 
 @interface RCTLogBoxView : UIWindow
 
@@ -22,3 +24,18 @@
 - (void)show;
 
 @end
+
+#else // [macOS
+
+@interface RCTLogBoxView : NSWindow
+
+- (instancetype)initWithSurfacePresenter:(id<RCTSurfacePresenterStub>)surfacePresenter;
+- (instancetype)initWithBridge:(RCTBridge *)bridge;
+
+- (void)setHidden:(BOOL)hidden;
+
+- (void)show;
+
+@end
+
+#endif // macOS]

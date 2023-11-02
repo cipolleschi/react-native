@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h> // [macOS]
 
 #import <React/RCTBridge.h>
 #import <React/RCTBridgeProxy.h>

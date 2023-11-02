@@ -102,7 +102,8 @@ if (exec(`git commit -a -m "[${version}] Bump version numbers"`).code) {
 }
 
 // Add tag v0.21.0-rc.1
-if (exec(`git tag -a v${version} -m "v${version}"`).code) {
+// [macOS] Add "-microsoft" suffix to tag to distinguish from React Native Core.
+if (exec(`git tag -a v${version}-microsoft -m "v${version}-microsoft"`).code) {
   echo(
     `failed to tag the commit with v${version}, are you sure this release wasn't made earlier?`,
   );

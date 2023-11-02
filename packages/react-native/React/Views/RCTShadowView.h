@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponent.h>
 // Keeps RCTConvert.h here before yoga for clang module to generate correct header imports.
@@ -17,7 +17,7 @@
 @class RCTRootShadowView;
 @class RCTSparseArray;
 
-typedef void (^RCTApplierBlock)(NSDictionary<NSNumber *, UIView *> *viewRegistry);
+typedef void (^RCTApplierBlock)(NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry); // [macOS]
 
 /**
  * ShadowView tree mirrors RCT view tree. Every node is highly stateful.
@@ -51,6 +51,9 @@ typedef void (^RCTApplierBlock)(NSDictionary<NSNumber *, UIView *> *viewRegistry
 @property (nonatomic, assign, readonly) YGNodeRef yogaNode;
 @property (nonatomic, copy) NSString *viewName;
 @property (nonatomic, copy) RCTDirectEventBlock onLayout;
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic) CGFloat scale;
+#endif // macOS]
 
 /**
  * Computed layout of the view.

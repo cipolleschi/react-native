@@ -15,6 +15,7 @@
   RCTSurfaceTouchHandler *_touchHandler;
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (instancetype)init
 {
   if (!(self = [super init])) {
@@ -76,5 +77,6 @@
   return _supportedInterfaceOrientations;
 }
 #endif // RCT_DEV
+#endif // [macOS]
 
 @end

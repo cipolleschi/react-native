@@ -10,7 +10,8 @@
 
 import * as React from 'react';
 import {RNTesterThemeContext} from './RNTesterTheme';
-import {StyleSheet, Text, View} from 'react-native';
+import {PlatformColor, StyleSheet, Text, View} from 'react-native';
+import {Platform} from 'react-native'; // [macOS]
 
 type Props = $ReadOnly<{|
   children?: React.Node,
@@ -57,6 +58,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   titleText: {
+    ...Platform.select({
+      macos: {
+        color: PlatformColor('labelColor'),
+      },
+      ios: {
+        color: PlatformColor('labelColor'),
+      },
+      default: undefined,
+    }),
     fontSize: 18,
     fontWeight: '300',
   },

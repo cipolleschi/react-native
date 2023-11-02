@@ -9,11 +9,11 @@
 # and relies on environment variables (including PWD) set by Xcode
 
 # Print commands before executing them (useful for troubleshooting)
-set -x
+set -x -e
 DEST=$CONFIGURATION_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH
 
 # Enables iOS devices to get the IP address of the machine running Metro
-if [[ ! "$SKIP_BUNDLING_METRO_IP" && "$CONFIGURATION" = *Debug* && ! "$PLATFORM_NAME" == *simulator ]]; then
+if [[ ! "$SKIP_BUNDLING_METRO_IP" && "$CONFIGURATION" = *Debug* && ! "$PLATFORM_NAME" == *simulator && ! "$PLATFORM_NAME" == macosx ]]; then # [macOS]
   for num in 0 1 2 3 4 5 6 7 8; do
     IP=$(ipconfig getifaddr en${num})
     if [ ! -z "$IP" ]; then
@@ -34,7 +34,7 @@ fi
 
 case "$CONFIGURATION" in
   *Debug*)
-    if [[ "$PLATFORM_NAME" == *simulator ]]; then
+    if [[ "$PLATFORM_NAME" == *simulator || "$PLATFORM_NAME" == macosx ]]; then
       if [[ "$FORCE_BUNDLING" ]]; then
         echo "FORCE_BUNDLING enabled; continuing to bundle."
       else
@@ -68,33 +68,22 @@ if [[ "$ENTRY_FILE" ]]; then
   # Use ENTRY_FILE defined by user
   :
 elif [[ -s "index.ios.js" ]]; then
-  ENTRY_FILE=${1:-index.ios.js}
+   ENTRY_FILE=${1:-index.ios.js}
+elif [[ -s "index.macos.js" ]]; then
+   ENTRY_FILE=${1:-index.macos.js}
 else
-  ENTRY_FILE=${1:-index.js}
+   ENTRY_FILE=${1:-index.js}
 fi
 
 # check and assign NODE_BINARY env
 # shellcheck source=/dev/null
 source "$REACT_NATIVE_DIR/scripts/node-binary.sh"
 
-# If hermes-engine is in the Podfile.lock, it means that Hermes is a dependency of the project
-# and it is enabled. If not, it means that hermes is disabled.
-HERMES_ENABLED=$(grep hermes-engine $PODS_PODFILE_DIR_PATH/Podfile.lock)
-
-# If hermes-engine is not in the Podfile.lock, it means that the app is not using Hermes.
-# Setting USE_HERMES is no the only way to set whether the app can use hermes or not: users
-# can also modify manually the Podfile.
-if [[ -z "$HERMES_ENABLED" ]]; then
-  USE_HERMES=false
-fi
-
 HERMES_ENGINE_PATH="$PODS_ROOT/hermes-engine"
 [ -z "$HERMES_CLI_PATH" ] && HERMES_CLI_PATH="$HERMES_ENGINE_PATH/destroot/bin/hermesc"
 
-# Hermes is enabled in new projects by default, so we cannot assume that USE_HERMES=1 is set as an envvar.
-# If hermes-engine is found in Pods, we can assume Hermes has not been disabled.
-# If hermesc is not available and USE_HERMES is either unset or true, show error.
-if [[  ! -z "$HERMES_ENABLED" && -f "$HERMES_ENGINE_PATH" && ! -f "$HERMES_CLI_PATH" ]]; then
+# If hermesc is not available and USE_HERMES is not set to false, show error.
+if [[ $USE_HERMES != false && -f "$HERMES_ENGINE_PATH" && ! -f "$HERMES_CLI_PATH" ]]; then
   echo "error: Hermes is enabled but the hermesc binary could not be found at ${HERMES_CLI_PATH}." \
        "Perhaps you need to run 'bundle exec pod install' or otherwise " \
        "point the HERMES_CLI_PATH variable to your custom location." >&2

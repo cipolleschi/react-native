@@ -19,6 +19,7 @@
 #import <React/RCTProfile.h>
 #import <React/RCTReloadCommand.h>
 #import <React/RCTUtils.h>
+#import <React/RCTBundleURLProvider.h> // [macOS]
 #import <atomic>
 
 #import "CoreModulesPlugins.h"
@@ -30,6 +31,7 @@ static NSString *const kRCTDevSettingIsDebuggingRemotely = @"isDebuggingRemotely
 static NSString *const kRCTDevSettingExecutorOverrideClass = @"executor-override";
 static NSString *const kRCTDevSettingShakeToShowDevMenu = @"shakeToShow";
 static NSString *const kRCTDevSettingIsPerfMonitorShown = @"RCTPerfMonitorKey";
+static NSString *const kRCTDevSettingSecondClickToShowDevMenu = @"secondClickToShow"; // [macOS]
 
 static NSString *const kRCTDevSettingsUserDefaultsKey = @"RCTDevMenu";
 
@@ -101,6 +103,13 @@ void RCTDevSettingsSetEnabled(BOOL enabled)
   return _settings[key];
 }
 
+// [macOS
+- (NSArray<NSString *> *)overridenKeys
+{
+  return [_settings allKeys];
+}
+// macOS]
+
 - (void)_reloadWithDefaults:(NSDictionary *)defaultValues
 {
   NSDictionary *existingSettings = [_userDefaults objectForKey:kRCTDevSettingsUserDefaultsKey];
@@ -110,7 +119,11 @@ void RCTDevSettingsSetEnabled(BOOL enabled)
       _settings[key] = defaultValues[key];
     }
   }
-  [_userDefaults setObject:_settings forKey:kRCTDevSettingsUserDefaultsKey];
+
+  // [macOS] protect against race conditions where another thread holds a mutext trying to set this at the same time
+  RCTExecuteOnMainQueue(^{
+    [self->_userDefaults setObject:self->_settings forKey:kRCTDevSettingsUserDefaultsKey];
+  });
 }
 
 @end
@@ -129,7 +142,7 @@ static std::atomic<int> numInitializedModules{0};
 }
 
 @property (nonatomic, strong) Class executorClass;
-@property (nonatomic, readwrite, strong) id<RCTDevSettingsDataSource> dataSource;
+@property (atomic, readwrite, strong) id<RCTDevSettingsDataSource> dataSource; // [macOS] protect against race conditions where another thread changes the _dataSource
 
 @end
 
@@ -146,6 +159,7 @@ RCT_EXPORT_MODULE()
   NSDictionary *defaultValues = @{
     kRCTDevSettingShakeToShowDevMenu : @YES,
     kRCTDevSettingHotLoadingEnabled : @YES,
+    kRCTDevSettingSecondClickToShowDevMenu: @YES, // [macOS]
   };
   RCTDevSettingsUserDefaultsDataSource *dataSource =
       [[RCTDevSettingsUserDefaultsDataSource alloc] initWithDefaultValues:defaultValues];
@@ -176,7 +190,7 @@ RCT_EXPORT_MODULE()
 
 - (void)initialize
 {
-#if RCT_DEV_SETTINGS_ENABLE_PACKAGER_CONNECTION
+#if DEBUG && RCT_DEV_SETTINGS_ENABLE_PACKAGER_CONNECTION // [macOS]
   if (self.bridge) {
     RCTBridge *__weak weakBridge = self.bridge;
     _bridgeExecutorOverrideToken = [[RCTPackagerConnection sharedPackagerConnection]
@@ -207,7 +221,7 @@ RCT_EXPORT_MODULE()
   }
 #endif
 
-#if RCT_ENABLE_INSPECTOR
+#if RCT_ENABLE_INSPECTOR && !TARGET_OS_UIKITFORMAC && DEBUG // [macOS]
   if (self.bridge) {
     // We need this dispatch to the main thread because the bridge is not yet
     // finished with its initialisation. By the time it relinquishes control of
@@ -269,12 +283,12 @@ RCT_EXPORT_MODULE()
 
 - (void)_updateSettingWithValue:(id)value forKey:(NSString *)key
 {
-  [_dataSource updateSettingWithValue:value forKey:key];
+  [[self dataSource] updateSettingWithValue:value forKey:key]; // [macOS] protect against race conditions where another thread changes the _dataSource
 }
 
 - (id)settingForKey:(NSString *)key
 {
-  return [_dataSource settingForKey:key];
+  return [[self dataSource] settingForKey:key]; // [macOS] protect against race conditions where another thread changes the _dataSource
 }
 
 - (BOOL)isDeviceDebuggingAvailable
@@ -332,7 +346,19 @@ RCT_EXPORT_METHOD(setIsShakeToShowDevMenuEnabled : (BOOL)enabled)
   return [[self settingForKey:kRCTDevSettingShakeToShowDevMenu] boolValue];
 }
 
-RCT_EXPORT_METHOD(setIsDebuggingRemotely : (BOOL)enabled)
+// [macOS
+RCT_EXPORT_METHOD(setIsSecondaryClickToShowDevMenuEnabled:(BOOL)enabled)
+{
+  [self _updateSettingWithValue:@(enabled) forKey:kRCTDevSettingSecondClickToShowDevMenu];
+}
+
+- (BOOL)isSecondaryClickToShowDevMenuEnabled
+{
+  return [[self settingForKey:kRCTDevSettingSecondClickToShowDevMenu] boolValue];
+}
+// macOS]
+
+RCT_EXPORT_METHOD(setIsDebuggingRemotely:(BOOL)enabled)
 {
   [self _updateSettingWithValue:@(enabled) forKey:kRCTDevSettingIsDebuggingRemotely];
   [self _remoteDebugSettingDidChange];
@@ -479,9 +505,10 @@ RCT_EXPORT_METHOD(addMenuItem : (NSString *)title)
     NSNumber *const port = urlComponents.port;
     NSString *const scheme = urlComponents.scheme;
     BOOL isHotLoadingEnabled = self.isHotLoadingEnabled;
-    [self.callableJSModules invokeModule:@"HMRClient"
-                                  method:@"setup"
-                                withArgs:@[ @"ios", path, host, RCTNullIfNil(port), @(isHotLoadingEnabled), scheme ]];
+    [self.callableJSModules
+        invokeModule:@"HMRClient"
+              method:@"setup"
+            withArgs:@[ RCTPlatformName, path, host, RCTNullIfNil(port), @(isHotLoadingEnabled), scheme ]];
   }
 }
 
@@ -550,6 +577,8 @@ RCT_EXPORT_METHOD(addMenuItem : (NSString *)title)
 @end
 
 @implementation RCTDevSettings
+
+RCT_EXPORT_MODULE()	// [macOS]
 
 - (instancetype)initWithDataSource:(id<RCTDevSettingsDataSource>)dataSource
 {

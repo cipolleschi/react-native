@@ -23,7 +23,7 @@
   UILabel *_label;
 
   CGFloat *_frames;
-  UIColor *_color;
+  RCTUIColor *_color; // [macOS]
 
   NSTimeInterval _prevTime;
   NSUInteger _frameCount;
@@ -35,7 +35,7 @@
   CGFloat _scale;
 }
 
-- (instancetype)initWithFrame:(CGRect)frame color:(UIColor *)color
+- (instancetype)initWithFrame:(CGRect)frame color:(RCTUIColor *)color // [macOS]
 {
   if ((self = [super initWithFrame:frame])) {
     _frameCount = -1;

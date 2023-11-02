@@ -21,7 +21,6 @@ DerivedData
 *.xcuserstate
 project.xcworkspace
 **/.xcode.env.local
-/poackages/react-native/sdks/downloads/
 
 # Gradle
 /build/
@@ -100,7 +99,7 @@ package-lock.json
 
 # Libs that shouldn't have Xcode project
 /packages/react-native/Libraries/FBLazyVector/**/*.xcodeproj
-/packages/react-native/Libraries/RCTRequired/**/*.xcodeproj
+/packages/react-native/Libraries/Required/**/*.xcodeproj
 /packages/react-native/React/CoreModules/**/*.xcodeproj
 /packages/react-native/React/FBReactNativeSpec/**/*.xcodeproj
 /packages/react-native-codegen/**/*.xcodeproj
@@ -117,6 +116,9 @@ package-lock.json
 /packages/react-native/template/ios/Podfile.lock
 /packages/rn-tester/Gemfile.lock
 
+# RNTester sourcemaps [macOS]
+/packages/rn-tester/sourcemap.*.map
+
 # Ignore RNTester specific Pods, but keep the __offline_mirrors__ here.
 /packages/rn-tester/Pods/*
 !/packages/rn-tester/Pods/__offline_mirrors_hermes__
@@ -128,6 +130,7 @@ package-lock.json
 /packages/react-native-codegen/tmp/
 /packages/react-native/ReactCommon/react/renderer/components/rncore/
 /packages/rn-tester/NativeModuleExample/ScreenshotManagerSpec*
+/packages/rn-tester/NativeModuleExample/react/renderer/components/ScreenshotManagerSpec/
 /**/RCTThirdPartyFabricComponentsProvider.*
 
 # @react-native/codegen-typescript-test
@@ -137,6 +140,7 @@ package-lock.json
 /packages/react-native/sdks/download
 /packages/react-native/sdks/hermes
 /packages/react-native/sdks/hermesc
+/packages/react-native/sdks/hermes-engine/hermes-engine-from-local-source-dir.tar.gz
 
 # Visual studio
 .vscode
@@ -151,3 +155,6 @@ package-lock.json
 # E2E files
 /packages/rn-tester-e2e/apps/*.apk
 /packages/rn-tester-e2e/apps/*.app
+
+# CircleCI
+.circleci/generated_config.yml

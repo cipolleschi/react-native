@@ -23,6 +23,11 @@ export type Args = {|
   preferredButtonKey?: string,
   keyboardType?: string,
   userInterfaceStyle?: string,
+  // [macOS
+  defaultInputs?: Array<Object>,
+  modal?: ?boolean,
+  critical?: ?boolean,
+  // macOS]
 |};
 
 export interface Spec extends TurboModule {

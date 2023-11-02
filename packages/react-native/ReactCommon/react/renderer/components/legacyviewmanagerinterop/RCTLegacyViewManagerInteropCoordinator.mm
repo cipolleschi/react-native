@@ -8,6 +8,7 @@
 #include "RCTLegacyViewManagerInteropCoordinator.h"
 #include <React/RCTBridge+Private.h>
 #include <React/RCTBridgeMethod.h>
+#include <React/RCTBridgeProxy.h>
 #include <React/RCTComponentData.h>
 #include <React/RCTEventDispatcherProtocol.h>
 #include <React/RCTFollyConvert.h>
@@ -16,6 +17,7 @@
 #include <React/RCTUIManager.h>
 #include <React/RCTUIManagerUtils.h>
 #include <React/RCTUtils.h>
+#include <React/RCTViewManager.h>
 #include <folly/json.h>
 #include <objc/runtime.h>
 
@@ -25,6 +27,8 @@ using namespace facebook::react;
   RCTComponentData *_componentData;
   __weak RCTBridge *_bridge;
   __weak RCTBridgeModuleDecorator *_bridgelessInteropData;
+  __weak RCTBridgeProxy *_bridgeProxy;
+
   /*
    Each instance of `RCTLegacyViewManagerInteropComponentView` registers a block to which events are dispatched.
    This is the container that maps unretained UIView pointer to a block to which the event is dispatched.
@@ -40,13 +44,16 @@ using namespace facebook::react;
 }
 
 - (instancetype)initWithComponentData:(RCTComponentData *)componentData
-                               bridge:(RCTBridge *)bridge
+                               bridge:(nullable RCTBridge *)bridge
+                          bridgeProxy:(nullable RCTBridgeProxy *)bridgeProxy
                 bridgelessInteropData:(RCTBridgeModuleDecorator *)bridgelessInteropData;
 {
   if (self = [super init]) {
     _componentData = componentData;
     _bridge = bridge;
     _bridgelessInteropData = bridgelessInteropData;
+    _bridgeProxy = bridgeProxy;
+
     if (bridgelessInteropData) {
       //  During bridge mode, RCTBridgeModules will be decorated with these APIs by the bridge.
       RCTAssert(
@@ -62,7 +69,9 @@ using namespace facebook::react;
       if (strongSelf) {
         InterceptorBlock block = [strongSelf->_eventInterceptors objectForKey:reactTag];
         if (block) {
-          block(std::string([RCTNormalizeInputEventName(eventName) UTF8String]), convertIdToFollyDynamic(event ?: @{}));
+          block(
+              std::string([RCTNormalizeInputEventName(eventName) UTF8String]),
+              convertIdToFollyDynamic(event ? event : @{}));
         }
       }
     };
@@ -80,14 +89,14 @@ using namespace facebook::react;
   [_eventInterceptors removeObjectForKey:[NSNumber numberWithInteger:tag]];
 }
 
-- (UIView *)createPaperViewWithTag:(NSInteger)tag;
+- (RCTPlatformView *)createPaperViewWithTag:(NSInteger)tag; // [macOS]
 {
-  UIView *view = [_componentData createViewWithTag:[NSNumber numberWithInteger:tag] rootTag:NULL];
+  RCTPlatformView *view = [_componentData createViewWithTag:[NSNumber numberWithInteger:tag] rootTag:NULL]; // [macOS]
   [_bridgelessInteropData attachInteropAPIsToModule:(id<RCTBridgeModule>)_componentData.bridgelessViewManager];
   return view;
 }
 
-- (void)setProps:(folly::dynamic const &)props forView:(UIView *)view
+- (void)setProps:(const folly::dynamic &)props forView:(RCTPlatformView *)view // [macOS]
 {
   if (props.isObject()) {
     NSDictionary<NSString *, id> *convertedProps = convertFollyDynamicToId(props);
@@ -103,7 +112,7 @@ using namespace facebook::react;
 - (void)handleCommand:(NSString *)commandName
                  args:(NSArray *)args
              reactTag:(NSInteger)tag
-            paperView:(nonnull UIView *)paperView
+            paperView:(nonnull RCTPlatformView *)paperView // [macOS]
 {
   Class managerClass = _componentData.managerClass;
   [self _lookupModuleMethodsIfNecessary];
@@ -131,46 +140,69 @@ using namespace facebook::react;
   NSArray *newArgs = [@[ [NSNumber numberWithInteger:tag] ] arrayByAddingObjectsFromArray:args];
 
   if (_bridge) {
-    [_bridge.batchedBridge
-        dispatchBlock:^{
-          [method invokeWithBridge:self->_bridge module:self->_componentData.manager arguments:newArgs];
-          [self->_bridge.uiManager setNeedsLayout];
-        }
-                queue:RCTGetUIManagerQueue()];
+    [self _handleCommandsOnBridge:method withArgs:newArgs];
   } else {
-    // TODO T86826778 - Figure out which queue this should be dispatched to.
-    [method invokeWithBridge:nil module:self->_componentData.manager arguments:newArgs];
+    [self _handleCommandsOnBridgeless:method withArgs:newArgs];
   }
 }
 
-- (void)addViewToRegistry:(UIView *)view withTag:(NSInteger)tag
+- (void)addViewToRegistry:(RCTPlatformView *)view withTag:(NSInteger)tag // [macOS]
 {
-  [self _addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+  [self _addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) { // [macOS]
     if ([viewRegistry objectForKey:@(tag)] != NULL) {
       return;
     }
-    NSMutableDictionary<NSNumber *, UIView *> *mutableViewRegistry =
-        (NSMutableDictionary<NSNumber *, UIView *> *)viewRegistry;
+    NSMutableDictionary<NSNumber *, RCTPlatformView *> *mutableViewRegistry = // [macOS]
+        (NSMutableDictionary<NSNumber *, RCTPlatformView *> *)viewRegistry; // [macOS]
     [mutableViewRegistry setObject:view forKey:@(tag)];
   }];
 }
 
 - (void)removeViewFromRegistryWithTag:(NSInteger)tag
 {
-  [self _addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+  [self _addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) { // [macOS]
     if ([viewRegistry objectForKey:@(tag)] == NULL) {
       return;
     }
 
-    NSMutableDictionary<NSNumber *, UIView *> *mutableViewRegistry =
-        (NSMutableDictionary<NSNumber *, UIView *> *)viewRegistry;
+    NSMutableDictionary<NSNumber *, RCTPlatformView *> *mutableViewRegistry = // [macOS]
+        (NSMutableDictionary<NSNumber *, RCTPlatformView *> *)viewRegistry; // [macOS]
     [mutableViewRegistry removeObjectForKey:@(tag)];
   }];
 }
 
 #pragma mark - Private
+- (void)_handleCommandsOnBridge:(id<RCTBridgeMethod>)method withArgs:(NSArray *)newArgs
+{
+  [_bridge.batchedBridge
+      dispatchBlock:^{
+        [method invokeWithBridge:self->_bridge module:self->_componentData.manager arguments:newArgs];
+        [self->_bridge.uiManager setNeedsLayout];
+      }
+              queue:RCTGetUIManagerQueue()];
+}
+
+- (void)_handleCommandsOnBridgeless:(id<RCTBridgeMethod>)method withArgs:(NSArray *)newArgs
+{
+  RCTViewManager *componentViewManager = self->_componentData.manager;
+  [componentViewManager setValue:_bridgeProxy forKey:@"bridge"];
+
+  [self->_bridgeProxy.uiManager
+      addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) { // [macOS]
+        [method invokeWithBridge:nil module:componentViewManager arguments:newArgs];
+      }];
+}
 
 - (void)_addUIBlock:(RCTViewManagerUIBlock)block
+{
+  if (_bridge) {
+    [self _addUIBlockOnBridge:block];
+  } else {
+    [self->_bridgeProxy.uiManager addUIBlock:block];
+  }
+}
+
+- (void)_addUIBlockOnBridge:(RCTViewManagerUIBlock)block
 {
   __weak __typeof__(self) weakSelf = self;
   [_bridge.batchedBridge

@@ -46,6 +46,7 @@ static NSString *RCTCacheKeyForImage(NSString *imageTag, CGSize size, CGFloat sc
     _decodedImageCache.totalCostLimit = RCTImageCacheTotalCostLimit;
     _cacheStaleTimes = [NSMutableDictionary new];
 
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(clearCache)
                                                  name:UIApplicationDidReceiveMemoryWarningNotification
@@ -54,11 +55,13 @@ static NSString *RCTCacheKeyForImage(NSString *imageTag, CGSize size, CGFloat sc
                                              selector:@selector(clearCache)
                                                  name:UIApplicationWillResignActiveNotification
                                                object:nil];
+#endif // [macOS]
   }
 
   return self;
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)clearCache
 {
   [_decodedImageCache removeAllObjects];
@@ -66,6 +69,7 @@ static NSString *RCTCacheKeyForImage(NSString *imageTag, CGSize size, CGFloat sc
     [_cacheStaleTimes removeAllObjects];
   }
 }
+#endif // [macOS]
 
 - (void)addImageToCache:(UIImage *)image forKey:(NSString *)cacheKey
 {

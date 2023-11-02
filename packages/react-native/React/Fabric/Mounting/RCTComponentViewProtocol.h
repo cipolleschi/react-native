@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <react/renderer/componentregistry/ComponentDescriptorProvider.h>
 #import <react/renderer/core/EventEmitter.h>
@@ -22,8 +22,8 @@ typedef NS_OPTIONS(NSInteger, RNComponentViewUpdateMask) {
   RNComponentViewUpdateMaskNone = 0,
   RNComponentViewUpdateMaskProps = 1 << 0,
   RNComponentViewUpdateMaskEventEmitter = 1 << 1,
-  RNComponentViewUpdateMaskState = 1 << 3,
-  RNComponentViewUpdateMaskLayoutMetrics = 1 << 4,
+  RNComponentViewUpdateMaskState = 1 << 2,
+  RNComponentViewUpdateMaskLayoutMetrics = 1 << 3,
 
   RNComponentViewUpdateMaskAll = RNComponentViewUpdateMaskProps | RNComponentViewUpdateMaskEventEmitter |
       RNComponentViewUpdateMaskState | RNComponentViewUpdateMaskLayoutMetrics
@@ -54,48 +54,48 @@ typedef NS_OPTIONS(NSInteger, RNComponentViewUpdateMask) {
  * component view.
  * Receiver must add `childComponentView` as a subview.
  */
-- (void)mountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index;
+- (void)mountChildComponentView:(RCTUIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index; // [macOS]
 
 /*
  * Called for unmounting (detaching) a child component view from `self`
  * component view.
  * Receiver must remove `childComponentView` as a subview.
  */
-- (void)unmountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index;
+- (void)unmountChildComponentView:(RCTUIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index; // [macOS]
 
 /*
  * Called for updating component's props.
  * Receiver must update native view props accordingly changed props.
  */
-- (void)updateProps:(facebook::react::Props::Shared const &)props
-           oldProps:(facebook::react::Props::Shared const &)oldProps;
+- (void)updateProps:(const facebook::react::Props::Shared &)props
+           oldProps:(const facebook::react::Props::Shared &)oldProps;
 
 /*
  * Called for updating component's state.
  * Receiver must update native view according to changed state.
  */
-- (void)updateState:(facebook::react::State::Shared const &)state
-           oldState:(facebook::react::State::Shared const &)oldState;
+- (void)updateState:(const facebook::react::State::Shared &)state
+           oldState:(const facebook::react::State::Shared &)oldState;
 
 /*
  * Called for updating component's event handlers set.
  * Receiver must cache `eventEmitter` object inside and use it for emitting
  * events when needed.
  */
-- (void)updateEventEmitter:(facebook::react::EventEmitter::Shared const &)eventEmitter;
+- (void)updateEventEmitter:(const facebook::react::EventEmitter::Shared &)eventEmitter;
 
 /*
  * Called for updating component's layout metrics.
  * Receiver must update `UIView` layout-related fields (such as `frame`,
  * `bounds`, `layer.zPosition`, and so on) accordingly.
  */
-- (void)updateLayoutMetrics:(facebook::react::LayoutMetrics const &)layoutMetrics
-           oldLayoutMetrics:(facebook::react::LayoutMetrics const &)oldLayoutMetrics;
+- (void)updateLayoutMetrics:(const facebook::react::LayoutMetrics &)layoutMetrics
+           oldLayoutMetrics:(const facebook::react::LayoutMetrics &)oldLayoutMetrics;
 
 /*
  * Called when receiving a command
  */
-- (void)handleCommand:(NSString const *)commandName args:(NSArray const *)args;
+- (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args;
 
 /*
  * Called right after all update methods were called for a particular component view.
@@ -118,6 +118,9 @@ typedef NS_OPTIONS(NSInteger, RNComponentViewUpdateMask) {
 
 - (BOOL)isJSResponder;
 - (void)setIsJSResponder:(BOOL)isJSResponder;
+
+- (NSNumber *)reactTag; // [macOS]
+- (void)setReactTag:(NSNumber *)reactTag; // [macOS]
 
 /*
  * This is broken. Do not use.

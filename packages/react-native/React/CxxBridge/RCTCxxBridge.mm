@@ -31,6 +31,7 @@
 #import <React/RCTReloadCommand.h>
 #import <React/RCTTurboModuleRegistry.h>
 #import <React/RCTUtils.h>
+#import <React/RCTBundleURLProvider.h> // [macOS]
 #import <cxxreact/CxxNativeModule.h>
 #import <cxxreact/Instance.h>
 #import <cxxreact/JSBundleType.h>
@@ -255,6 +256,13 @@ struct RCTInstanceCallback : public InstanceCallback {
   return _jsMessageThread;
 }
 
+// [macOS
+- (std::weak_ptr<Instance>)reactInstance
+{
+  return _reactInstance;
+}
+// macOS]
+
 - (BOOL)isInspectable
 {
   return _reactInstance ? _reactInstance->isInspectable() : NO;
@@ -295,10 +303,12 @@ struct RCTInstanceCallback : public InstanceCallback {
 
     [RCTBridge setCurrentBridge:self];
 
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleMemoryWarning)
                                                  name:UIApplicationDidReceiveMemoryWarningNotification
                                                object:nil];
+#endif // [macOS]
 
     RCTLogSetBridgeModuleRegistry(_objCModuleRegistry);
     RCTLogSetBridgeCallableJSModules(_callableJSModules);
@@ -308,7 +318,9 @@ struct RCTInstanceCallback : public InstanceCallback {
 
 - (void)dealloc
 {
+#if !TARGET_OS_OSX // [macOS]
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+#endif // [macOS]
 }
 
 + (void)runRunLoop
@@ -692,7 +704,7 @@ struct RCTInstanceCallback : public InstanceCallback {
 {
   std::lock_guard<std::mutex> guard(_moduleRegistryLock);
 
-  // This is async, but any calls into JS are blocked by the m_syncReady CV in Instance
+    // This is async, but any calls into JS are blocked by the m_syncReady CV in Instance
   _reactInstance->initializeBridge(
       std::make_unique<RCTInstanceCallback>(self),
       executorFactory,

@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTView.h>
 
@@ -26,8 +26,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithCoder:(NSCoder *)decoder NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 
-@property (nonatomic, readonly) UIView<RCTBackedTextInputViewProtocol> *backedTextInputView;
+@property (nonatomic, readonly) RCTUIView<RCTBackedTextInputViewProtocol> *backedTextInputView; // [macOS]
 
+/**
+ Whether this text input ignores the `textAttributes` property. Defaults to `NO`. If set to `YES`, the value of `textAttributes` will be ignored in favor of standard text input behavior.
+ */
+@property (nonatomic) BOOL ignoresTextAttributes; // [macOS]
 @property (nonatomic, strong, nullable) RCTTextAttributes *textAttributes;
 @property (nonatomic, assign) UIEdgeInsets reactPaddingInsets;
 @property (nonatomic, assign) UIEdgeInsets reactBorderInsets;
@@ -35,10 +39,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onContentSizeChange;
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onSelectionChange;
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onChange;
+@property (nonatomic, copy, nullable) RCTDirectEventBlock onPaste; // [macOS]
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onChangeSync;
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onTextInput;
 @property (nonatomic, copy, nullable) RCTDirectEventBlock onScroll;
-
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic, copy, nullable) RCTBubblingEventBlock onAutoCorrectChange;
+@property (nonatomic, copy, nullable) RCTBubblingEventBlock onSpellCheckChange;
+@property (nonatomic, copy, nullable) RCTBubblingEventBlock onGrammarCheckChange;
+@property (nonatomic, assign) BOOL clearTextOnSubmit;
+@property (nonatomic, copy, nullable) RCTDirectEventBlock onSubmitEditing;
+@property (nonatomic, copy) NSArray<NSDictionary *> *submitKeyEvents;
+@property (nonatomic, strong, nullable) RCTUIColor *cursorColor;
+#endif // macOS]
 @property (nonatomic, assign) NSInteger mostRecentEventCount;
 @property (nonatomic, assign, readonly) NSInteger nativeEventCount;
 @property (nonatomic, assign) BOOL autoFocus;
@@ -49,9 +62,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) RCTTextSelection *selection;
 @property (nonatomic, strong, nullable) NSNumber *maxLength;
 @property (nonatomic, copy, nullable) NSAttributedString *attributedText;
+@property (nonatomic, copy) NSString *predictedText; // [macOS]
 @property (nonatomic, copy) NSString *inputAccessoryViewID;
+#if !TARGET_OS_OSX // [macOS]
 @property (nonatomic, assign) UIKeyboardType keyboardType;
 @property (nonatomic, assign) BOOL showSoftInputOnFocus;
+#endif // [macOS]
+
+@property (nonatomic, copy, nullable) NSString *ghostText; // [macOS]
 
 /**
  Sets selection intext input if both start and end are within range of the text input.

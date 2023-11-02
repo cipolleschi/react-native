@@ -471,10 +471,20 @@ export type Props = $ReadOnly<{|
    */
   horizontal?: ?boolean,
   /**
+   * When true, the scroll view's indicator is shown in an overlay. // [macOS
+   * This does does not take up any content view space.
+   * https://developer.apple.com/documentation/appkit/nsscrollerstyle/nsscrollerstyleoverlay // macOS]
+   */
+  hasOverlayStyleIndicator?: ?boolean, // [macOS]
+  /**
    * If sticky headers should stick at the bottom instead of the top of the
    * ScrollView. This is usually used with inverted ScrollViews.
    */
   invertStickyHeaders?: ?boolean,
+  /**
+   * Reverses the direction of scroll. Uses native inversion on macOS and scale transforms of -1 elsewhere // [macOS]
+   */
+  inverted?: ?boolean, // [macOS]
   /**
    * Determines whether the keyboard gets dismissed in response to a drag.
    *
@@ -546,8 +556,6 @@ export type Props = $ReadOnly<{|
    * When true, the scroll view stops on multiples of the scroll view's size
    * when scrolling. This can be used for horizontal pagination. The default
    * value is false.
-   *
-   * Note: Vertical pagination is not supported on Android.
    */
   pagingEnabled?: ?boolean,
   /**
@@ -673,6 +681,7 @@ export type Props = $ReadOnly<{|
 |}>;
 
 type State = {|
+  contentKey: number, // [macOS]
   layoutHeight: ?number,
 |};
 
@@ -758,6 +767,7 @@ class ScrollView extends React.Component<Props, State> {
   _subscriptionKeyboardDidHide: ?EventSubscription = null;
 
   state: State = {
+    contentKey: 1, // [macOS]
     layoutHeight: null,
   };
 
@@ -1015,7 +1025,11 @@ class ScrollView extends React.Component<Props, State> {
     |},
     animated?: boolean, // deprecated, put this inside the rect argument instead
   ) => {
-    invariant(Platform.OS === 'ios', 'zoomToRect is not implemented');
+    invariant(
+      // [macOS
+      Platform.OS === 'ios' || Platform.OS === 'macos',
+      'zoomToRect is not implemented',
+    ); // macOS]
     if ('animated' in rect) {
       this._animated = rect.animated;
       delete rect.animated;
@@ -1149,12 +1163,22 @@ class ScrollView extends React.Component<Props, State> {
     }
   }
 
+  // [macOS
+  _handlePreferredScrollerStyleDidChange = (event: ScrollEvent) => {
+    this.setState({contentKey: this.state.contentKey + 1});
+  }; // macOS]
+
+  // [macOS
+  _handleInvertedDidChange = () => {
+    this.setState({contentKey: this.state.contentKey + 1});
+  }; // macOS]
+
   _handleScroll = (e: ScrollEvent) => {
     if (__DEV__) {
       if (
         this.props.onScroll &&
         this.props.scrollEventThrottle == null &&
-        Platform.OS === 'ios'
+        (Platform.OS === 'ios' || Platform.OS === 'macos') // [macOS]
       ) {
         console.log(
           'You specified `onScroll` on a <ScrollView> but not ' +
@@ -1665,6 +1689,7 @@ class ScrollView extends React.Component<Props, State> {
       // $FlowFixMe[underconstrained-implicit-instantiation]
       const style = flattenStyle(this.props.style);
       const childLayoutProps = ['alignItems', 'justifyContent'].filter(
+        // $FlowFixMe[incompatible-use]
         prop => style && style[prop] !== undefined,
       );
       invariant(
@@ -1700,7 +1725,6 @@ class ScrollView extends React.Component<Props, State> {
           return (
             <StickyHeaderComponent
               key={key}
-              nativeID={'StickyHeader-' + key} /* TODO: T68258846. */
               ref={ref => this._setStickyHeaderRef(key, ref)}
               nextHeaderLayoutY={this._headerLayoutYs.get(
                 this._getKeyForIndex(nextIndex, childArray),
@@ -1740,6 +1764,8 @@ class ScrollView extends React.Component<Props, State> {
             ? false
             : this.props.removeClippedSubviews
         }
+        key={this.state.contentKey} // [macOS]
+        inverted={this.props.inverted} // [macOS]
         collapsable={false}>
         {children}
       </NativeDirectionalScrollContentView>
@@ -1767,6 +1793,9 @@ class ScrollView extends React.Component<Props, State> {
       // Override the onContentSizeChange from props, since this event can
       // bubble up from TextInputs
       onContentSizeChange: null,
+      onInvertedDidChange: this._handleInvertedDidChange, // [macOS]
+      onPreferredScrollerStyleDidChange:
+        this._handlePreferredScrollerStyleDidChange, // [macOS]
       onLayout: this._handleLayout,
       onMomentumScrollBegin: this._handleMomentumScrollBegin,
       onMomentumScrollEnd: this._handleMomentumScrollEnd,
@@ -1803,6 +1832,11 @@ class ScrollView extends React.Component<Props, State> {
           this.props.pagingEnabled === true &&
           this.props.snapToInterval == null &&
           this.props.snapToOffsets == null,
+        // [macOS
+        macos:
+          this.props.pagingEnabled === true &&
+          this.props.snapToInterval == null &&
+          this.props.snapToOffsets == null, // macOS]
         // on Android, pagingEnabled must be set to true to have snapToInterval / snapToOffsets work
         android:
           this.props.pagingEnabled === true ||
@@ -1837,6 +1871,7 @@ class ScrollView extends React.Component<Props, State> {
         // Note: we should split props.style on the inner and outer props
         // however, the ScrollView still needs the baseStyle to be scrollable
         // $FlowFixMe[underconstrained-implicit-instantiation]
+        // $FlowFixMe[incompatible-call]
         const {outer, inner} = splitLayoutProps(flattenStyle(props.style));
         return React.cloneElement(
           refreshControl,
@@ -1924,6 +1959,7 @@ function Wrapper(props, ref: (mixed => mixed) | {current: mixed, ...}) {
   return <ScrollView {...props} scrollViewRef={ref} />;
 }
 Wrapper.displayName = 'ScrollView';
+// $FlowFixMe[incompatible-call]
 const ForwardedScrollView = React.forwardRef(Wrapper);
 
 // $FlowFixMe[prop-missing] Add static context to ForwardedScrollView

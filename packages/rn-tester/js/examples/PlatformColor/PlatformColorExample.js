@@ -11,7 +11,15 @@
 const React = require('react');
 const ReactNative = require('react-native');
 import Platform from 'react-native/Libraries/Utilities/Platform';
-const {DynamicColorIOS, PlatformColor, StyleSheet, Text, View} = ReactNative;
+const {
+  ColorWithSystemEffectMacOS, // [macOS]
+  DynamicColorIOS,
+  DynamicColorMacOS,
+  PlatformColor,
+  StyleSheet,
+  Text,
+  View,
+} = ReactNative;
 
 function PlatformColorsExample() {
   function createTable() {
@@ -192,7 +200,10 @@ function PlatformColorsExample() {
 
 function FallbackColorsExample() {
   let color = {};
-  if (Platform.OS === 'ios') {
+  if (
+    Platform.OS === 'ios' ||
+    Platform.OS === 'macos' // [macOS]
+  ) {
     color = {
       label: "PlatformColor('bogus', 'systemGreenColor')",
       color: PlatformColor('bogus', 'systemGreenColor'),
@@ -226,7 +237,63 @@ function FallbackColorsExample() {
 }
 
 function DynamicColorsExample() {
-  return Platform.OS === 'ios' ? (
+  // [macOS
+  return Platform.OS === 'macos' ? (
+    <View style={styles.column}>
+      <View style={styles.row}>
+        <Text style={styles.labelCell}>
+          DynamicColorMacOS({'{\n'}
+          {'  '}light: 'red', dark: 'blue'{'\n'}
+          {'}'})
+        </Text>
+        <View
+          style={{
+            ...styles.colorCell,
+            backgroundColor: DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          }}
+        />
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.labelCell}>
+          DynamicColorMacOS({'{\n'}
+          {'  '}light: PlatformColor('systemBlueColor'),{'\n'}
+          {'  '}dark: PlatformColor('systemRedColor'),{'\n'}
+          {'}'})
+        </Text>
+        <View
+          style={{
+            ...styles.colorCell,
+            backgroundColor: DynamicColorMacOS({
+              light: PlatformColor('systemBlueColor'),
+              dark: PlatformColor('systemRedColor'),
+            }),
+          }}
+        />
+      </View>
+      <View style={styles.row}>
+        <Text style={styles.labelCell}>
+          DynamicColorMacOS({'{\n'}
+          {'  '}light: 'red',{'\n'}
+          {'  '}dark: 'blue',{'\n'}
+          {'  '}highContrastLight: 'green',{'\n'}
+          {'  '}highContrastDark: 'orange',{'\n'}
+          {'}'})
+        </Text>
+        <View
+          style={{
+            ...styles.colorCell,
+            backgroundColor: DynamicColorMacOS({
+              light: 'red',
+              dark: 'blue',
+              highContrastLight: 'green',
+              highContrastDark: 'orange',
+            }),
+          }}
+        />
+      </View>
+    </View>
+  ) : // macOS]
+  Platform.OS === 'ios' ? (
     <View style={styles.column}>
       <View style={styles.row}>
         <Text style={styles.labelCell}>
@@ -283,11 +350,16 @@ function VariantColorsExample() {
     <View style={styles.column}>
       <View style={styles.row}>
         <Text style={styles.labelCell}>
-          {Platform.select({
-            ios: "DynamicColorIOS({light: 'red', dark: 'blue'})",
-            android: "PlatformColor('?attr/colorAccent')",
-            default: 'Unexpected Platform.OS: ' + Platform.OS,
-          })}
+          {
+            // [macOS
+            Platform.select({
+              ios: "DynamicColorIOS({light: 'red', dark: 'blue'})",
+              android: "PlatformColor('?attr/colorAccent')",
+              macos: "DynamicColorMacOS({light: 'red', dark: 'blue'})",
+              default: 'Unexpected Platform.OS: ' + Platform.OS,
+            })
+            // macOS]
+          }
         </Text>
         <View
           style={{
@@ -295,7 +367,11 @@ function VariantColorsExample() {
             backgroundColor:
               Platform.OS === 'ios'
                 ? DynamicColorIOS({light: 'red', dark: 'blue'})
-                : Platform.OS === 'android'
+                : // [macOS
+                Platform.OS === 'macos'
+                ? DynamicColorMacOS({light: 'red', dark: 'blue'})
+                : // macOS]
+                Platform.OS === 'android'
                 ? PlatformColor('?attr/colorAccent')
                 : 'red',
           }}
@@ -305,16 +381,152 @@ function VariantColorsExample() {
   );
 }
 
+// [macOS
+function ColorWithSystemEffectMacOSExample() {
+  function createTable() {
+    let colors = [
+      {label: 'gray', color: 'gray'},
+      {
+        label: "ColorWithSystemEffectMacOS('gray', 'none')",
+        color: ColorWithSystemEffectMacOS('gray', 'none'),
+      },
+      {
+        label: "ColorWithSystemEffectMacOS('gray', 'pressed')",
+        color: ColorWithSystemEffectMacOS('gray', 'pressed'),
+      },
+      {
+        label: "ColorWithSystemEffectMacOS('gray', 'deepPressed')",
+        color: ColorWithSystemEffectMacOS('gray', 'deepPressed'),
+      },
+      {
+        label: "ColorWithSystemEffectMacOS('gray', 'disabled')",
+        color: ColorWithSystemEffectMacOS('gray', 'disabled'),
+      },
+      {
+        label: "ColorWithSystemEffectMacOS('gray', 'rollover')",
+        color: ColorWithSystemEffectMacOS('gray', 'rollover'),
+      },
+      {
+        label: "PlatformColor('systemBlueColor')",
+        color: PlatformColor('systemBlueColor'),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(PlatformColor('systemBlueColor'), 'none')",
+        color: ColorWithSystemEffectMacOS(
+          PlatformColor('systemBlueColor'),
+          'none',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(PlatformColor('systemBlueColor'), 'pressed')",
+        color: ColorWithSystemEffectMacOS(
+          PlatformColor('systemBlueColor'),
+          'pressed',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(PlatformColor('systemBlueColor'), 'deepPressed')",
+        color: ColorWithSystemEffectMacOS(
+          PlatformColor('systemBlueColor'),
+          'deepPressed',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(PlatformColor('systemBlueColor'), 'disabled')",
+        color: ColorWithSystemEffectMacOS(
+          PlatformColor('systemBlueColor'),
+          'disabled',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(PlatformColor('systemBlueColor'), 'rollover')",
+        color: ColorWithSystemEffectMacOS(
+          PlatformColor('systemBlueColor'),
+          'rollover',
+        ),
+      },
+      {
+        label: "DynamicColorMacOS({light: 'red', dark: 'blue'})",
+        color: DynamicColorMacOS({light: 'red', dark: 'blue'}),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(DynamicColorMacOS({light: 'red', dark: 'blue'}), 'none')",
+        color: ColorWithSystemEffectMacOS(
+          DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          'none',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(DynamicColorMacOS({light: 'red', dark: 'blue'}), 'pressed')",
+        color: ColorWithSystemEffectMacOS(
+          DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          'pressed',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(DynamicColorMacOS({light: 'red', dark: 'blue'}), 'deepPressed')",
+        color: ColorWithSystemEffectMacOS(
+          DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          'deepPressed',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(DynamicColorMacOS({light: 'red', dark: 'blue'}), 'disabled')",
+        color: ColorWithSystemEffectMacOS(
+          DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          'disabled',
+        ),
+      },
+      {
+        label:
+          "ColorWithSystemEffectMacOS(DynamicColorMacOS({light: 'red', dark: 'blue'}), 'rollover')",
+        color: ColorWithSystemEffectMacOS(
+          DynamicColorMacOS({light: 'red', dark: 'blue'}),
+          'rollover',
+        ),
+      },
+    ];
+
+    let table = [];
+    for (let color of colors) {
+      table.push(
+        <View style={styles.row} key={color.label}>
+          <Text style={styles.labelCell}>{color.label}</Text>
+          <View
+            style={{
+              ...styles.colorCell,
+              backgroundColor: color.color,
+            }}
+          />
+        </View>,
+      );
+    }
+    return table;
+  }
+  return Platform.OS === 'macos' ? (
+    <View style={styles.column}>{createTable()}</View>
+  ) : (
+    <Text style={styles.labelCell}>Not applicable on this platform</Text>
+  );
+} // macOS]
+
 const styles = StyleSheet.create({
   column: {flex: 1, flexDirection: 'column'},
   row: {flex: 0.75, flexDirection: 'row'},
   labelCell: {
     flex: 1,
     alignItems: 'stretch',
-    ...Platform.select({
-      ios: {color: PlatformColor('labelColor')},
-      default: {color: 'black'},
-    }),
+    // [macOS]
+    // Remove need to specify label color
   },
   colorCell: {flex: 0.25, alignItems: 'stretch'},
 });
@@ -338,7 +550,7 @@ exports.examples = [
     },
   },
   {
-    title: 'iOS Dynamic Colors',
+    title: 'Dynamic Colors', // [macOS]
     render(): React.Element<any> {
       return <DynamicColorsExample />;
     },
@@ -349,4 +561,11 @@ exports.examples = [
       return <VariantColorsExample />;
     },
   },
+  // [macOS
+  {
+    title: 'Color With System Effect macOS',
+    render(): React.Element<any> {
+      return <ColorWithSystemEffectMacOSExample />;
+    },
+  }, // macOS]
 ];

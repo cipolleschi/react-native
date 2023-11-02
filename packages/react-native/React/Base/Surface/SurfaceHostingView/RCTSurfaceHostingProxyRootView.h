@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTBridgeModule.h>
 #import <React/RCTRootView.h>
@@ -27,27 +27,19 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, copy, readonly) NSString *moduleName;
 @property (nonatomic, strong, readonly) RCTBridge *bridge;
-@property (nonatomic, readonly) BOOL hasBridge;
-@property (nonatomic, strong, readonly) RCTModuleRegistry *moduleRegistry;
-@property (nonatomic, strong, readonly) id<RCTEventDispatcherProtocol> eventDispatcher;
 @property (nonatomic, copy, readwrite) NSDictionary *appProperties;
 @property (nonatomic, assign) RCTRootViewSizeFlexibility sizeFlexibility;
 @property (nonatomic, weak) id<RCTRootViewDelegate> delegate;
 @property (nonatomic, weak) UIViewController *reactViewController;
-@property (nonatomic, strong, readonly) UIView *view;
-@property (nonatomic, strong, readonly) UIView *contentView;
-@property (nonatomic, strong) UIView *loadingView;
+@property (nonatomic, strong, readonly) RCTUIView *view; // [macOS]
+@property (nonatomic, strong, readonly) RCTUIView *contentView; // [macOS]
+@property (nonatomic, strong) RCTUIView *loadingView; // [macOS]
 @property (nonatomic, assign) BOOL passThroughTouches;
 @property (nonatomic, assign) NSTimeInterval loadingViewFadeDelay;
 @property (nonatomic, assign) NSTimeInterval loadingViewFadeDuration;
 @property (nonatomic, assign) CGSize minimumSize;
 
-/**
- * Bridgeless mode initializer
- */
-- (instancetype)initWithSurface:(id<RCTSurfaceProtocol>)surface moduleRegistry:(RCTModuleRegistry *)moduleRegistry;
-
-- (instancetype)initWithSurface:(id<RCTSurfaceProtocol>)surface;
+- (instancetype)initWithSurface:(id<RCTSurfaceProtocol>)surface NS_DESIGNATED_INITIALIZER;
 
 - (void)cancelTouches;
 

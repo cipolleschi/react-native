@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #include <react/renderer/textlayoutmanager/RCTFontProperties.h>
 #include <react/renderer/textlayoutmanager/RCTFontUtils.h>
@@ -48,13 +48,13 @@ inline static NSLineBreakStrategy RCTNSLineBreakStrategyFromLineBreakStrategy(
     case facebook::react::LineBreakStrategy::PushOut:
       return NSLineBreakStrategyPushOut;
     case facebook::react::LineBreakStrategy::HangulWordPriority:
-      if (@available(iOS 14.0, *)) {
+      if (@available(iOS 14.0, macOS 11.0, *)) { // [macOS]
         return NSLineBreakStrategyHangulWordPriority;
       } else {
         return NSLineBreakStrategyNone;
       }
     case facebook::react::LineBreakStrategy::Standard:
-      if (@available(iOS 14.0, *)) {
+      if (@available(iOS 14.0, macOS 11.0, *)) { // [macOS]
         return NSLineBreakStrategyStandard;
       } else {
         return NSLineBreakStrategyNone;
@@ -94,24 +94,24 @@ inline static NSUnderlineStyle RCTNSUnderlineStyleFromTextDecorationStyle(
   }
 }
 
-inline static UIColor *RCTUIColorFromSharedColor(const facebook::react::SharedColor &sharedColor)
+inline static RCTUIColor *RCTUIColorFromSharedColor(const facebook::react::SharedColor &sharedColor) // [macOS]
 {
   if (!sharedColor) {
     return nil;
   }
 
   if (*facebook::react::clearColor() == *sharedColor) {
-    return [UIColor clearColor];
+    return [RCTUIColor clearColor]; // [macOS]
   }
 
   if (*facebook::react::blackColor() == *sharedColor) {
-    return [UIColor blackColor];
+    return [RCTUIColor blackColor]; // [macOS]
   }
 
   if (*facebook::react::whiteColor() == *sharedColor) {
-    return [UIColor whiteColor];
+    return [RCTUIColor whiteColor]; // [macOS]
   }
 
   auto components = facebook::react::colorComponentsFromColor(sharedColor);
-  return [UIColor colorWithRed:components.red green:components.green blue:components.blue alpha:components.alpha];
+  return [RCTUIColor colorWithRed:components.red green:components.green blue:components.blue alpha:components.alpha]; // [macOS]
 }

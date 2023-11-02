@@ -43,7 +43,9 @@ const PushNotificationEmitter =
   new NativeEventEmitter<NativePushNotificationIOSEventDefinitions>(
     // T88715063: NativeEventEmitter only used this parameter on iOS. Now it uses it on all platforms, so this code was modified automatically to preserve its behavior
     // If you want to use the native module on other platforms, please remove this condition and test its behavior
-    Platform.OS !== 'ios' ? null : NativePushNotificationManagerIOS,
+    Platform.OS !== 'ios' && Platform.OS !== 'macos' // [macOS] Also use this parameter on macOS
+      ? null
+      : NativePushNotificationManagerIOS,
   );
 
 const _notifHandlers = new Map<string, void | EventSubscription>();
@@ -472,7 +474,8 @@ class PushNotificationIOS {
     if (
       !this._isRemote ||
       !this._notificationId ||
-      this._remoteNotificationCompleteCallbackCalled
+      this._remoteNotificationCompleteCallbackCalled ||
+      Platform.OS === 'macos' // [macOS]
     ) {
       return;
     }

@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventDispatcherProtocol.h>
+#import <React/RCTPlatformDisplayLink.h> // [macOS]
 #import <React/RCTSurfacePresenterStub.h>
 #import <React/RCTUIManager.h>
 
@@ -22,7 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)updateAnimations;
 
-- (void)stepAnimations:(CADisplayLink *)displaylink;
+- (void)stepAnimations:(RCTPlatformDisplayLink *)displaylink; // [macOS]
 
 - (BOOL)isNodeManagedByFabric:(NSNumber *)tag;
 

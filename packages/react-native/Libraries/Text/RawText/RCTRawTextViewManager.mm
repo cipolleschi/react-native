@@ -13,9 +13,9 @@
 
 RCT_EXPORT_MODULE(RCTRawText)
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
-  return [UIView new];
+  return [RCTUIView new]; // [macOS]
 }
 
 - (RCTShadowView *)shadowView

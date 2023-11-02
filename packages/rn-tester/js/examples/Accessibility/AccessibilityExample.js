@@ -20,10 +20,10 @@ const {
   Button,
   Image,
   Text,
-  View,
   TouchableOpacity,
   TouchableNativeFeedback,
   TouchableWithoutFeedback,
+  View,
   Alert,
   StyleSheet,
   Platform,
@@ -1002,26 +1002,28 @@ class AccessibilityActionsExample extends React.Component<{}> {
           />
         </RNTesterBlock>
 
-        <RNTesterBlock title="Text with custom accessibility actions">
-          <Text
-            accessible={true}
-            accessibilityActions={[
-              {name: 'activate', label: 'activate label'},
-              {name: 'copy', label: 'copy label'},
-            ]}
-            onAccessibilityAction={event => {
-              switch (event.nativeEvent.actionName) {
-                case 'activate':
-                  Alert.alert('Alert', 'Activate accessibility action');
-                  break;
-                case 'copy':
-                  Alert.alert('Alert', 'copy action success');
-                  break;
-              }
-            }}>
-            Text
-          </Text>
-        </RNTesterBlock>
+        {/* [macOS This doesn't work, see https://github.com/facebook/react-native/issues/32616
+          <RNTesterBlock title="Text with custom accessibility actions">
+            <Text
+              accessible={true}
+              accessibilityActions={[
+                {name: 'activate', label: 'activate label'},
+                {name: 'copy', label: 'copy label'},
+              ]}
+              onAccessibilityAction={event => {
+                switch (event.nativeEvent.actionName) {
+                  case 'activate':
+                    Alert.alert('Alert', 'Activate accessiblity action');
+                    break;
+                  case 'copy':
+                    Alert.alert('Alert', 'copy action success');
+                    break;
+                }
+              }}>
+              Text
+            </Text>
+          </RNTesterBlock>
+        macOS] */}
       </View>
     );
   }
@@ -1466,6 +1468,7 @@ class EnabledExample extends React.Component<
 class DisplayOptionsStatusExample extends React.Component<{}> {
   render(): React.Node {
     const isAndroid = Platform.OS === 'android';
+    const isMacOS = Platform.OS === 'macos'; // [macOS]
     return (
       <View>
         <DisplayOptionStatusExample
@@ -1495,6 +1498,15 @@ class DisplayOptionsStatusExample extends React.Component<{}> {
               optionChecker={AccessibilityInfo.isGrayscaleEnabled}
               notification={'grayscaleChanged'}
             />
+            {
+              isMacOS ? ( // [macOS
+                <DisplayOptionStatusExample
+                  optionName={'High Contrast'}
+                  optionChecker={AccessibilityInfo.isHighContrastEnabled}
+                  notification={'highContrastChanged'}
+                />
+              ) : null /* macOS] */
+            }
             <DisplayOptionStatusExample
               optionName={'Invert Colors'}
               optionChecker={AccessibilityInfo.isInvertColorsEnabled}

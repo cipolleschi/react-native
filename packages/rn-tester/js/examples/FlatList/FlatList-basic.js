@@ -78,6 +78,11 @@ type State = {|
   maintainVisibleContentPosition: boolean,
   previousLoading: boolean,
   nextLoading: boolean,
+  // [macOS
+  enableSelectionOnKeyPress: boolean,
+  focusable: boolean,
+  enableFocusRing: boolean,
+  // macOS]
 |};
 
 const IS_RTL = I18nManager.isRTL;
@@ -103,6 +108,11 @@ class FlatListExample extends React.PureComponent<Props, State> {
     maintainVisibleContentPosition: true,
     previousLoading: false,
     nextLoading: false,
+    // [macOS
+    enableSelectionOnKeyPress: false,
+    focusable: true,
+    enableFocusRing: true,
+    // macOS]
   };
 
   /* $FlowFixMe[missing-local-annot] The type annotation(s) required by Flow's
@@ -158,6 +168,7 @@ class FlatListExample extends React.PureComponent<Props, State> {
           <View style={styles.searchRow}>
             <View style={styles.options}>
               <PlainInput
+                testID="search_bar_flat_list"
                 onChangeText={this._onChangeFilterText}
                 placeholder="Search..."
                 value={this.state.filterText}
@@ -228,6 +239,26 @@ class FlatListExample extends React.PureComponent<Props, State> {
                 this.state.maintainVisibleContentPosition,
                 this._setBooleanValue('maintainVisibleContentPosition'),
               )}
+              {/* [macOS  */}
+              {Platform.OS === 'macos' &&
+                renderSmallSwitchOption(
+                  'Keyboard Navigation',
+                  this.state.enableSelectionOnKeyPress,
+                  this._setBooleanValue('enableSelectionOnKeyPress'),
+                )}
+              {Platform.OS === 'macos' &&
+                renderSmallSwitchOption(
+                  'Focuasble',
+                  this.state.focusable,
+                  this._setBooleanValue('focusable'),
+                )}
+              {Platform.OS === 'macos' &&
+                renderSmallSwitchOption(
+                  'Focus Ring',
+                  this.state.enableFocusRing,
+                  this._setBooleanValue('enableFocusRing'),
+                )}
+              {/* macOS] */}
               {Platform.OS === 'android' && (
                 <View>
                   <TextInput
@@ -247,6 +278,12 @@ class FlatListExample extends React.PureComponent<Props, State> {
           </View>
           <SeparatorComponent />
           <Animated.FlatList
+            // [macOS
+            enableSelectionOnKeyPress={this.state.enableSelectionOnKeyPress}
+            initialSelectedIndex={0}
+            focusable={this.state.focusable}
+            enableFocusRing={this.state.enableFocusRing}
+            // macOS]
             fadingEdgeLength={this.state.fadingEdgeLength}
             ItemSeparatorComponent={
               this.state.horizontal ? null : ItemSeparatorComponent
@@ -352,7 +389,11 @@ class FlatListExample extends React.PureComponent<Props, State> {
   _onRefresh = () => Alert.alert('onRefresh: nothing to refresh :P');
   // $FlowFixMe[missing-local-annot]
   _renderItemComponent = () => {
-    const renderProp = ({item, separators}: RenderItemProps<Item>) => {
+    const renderProp = ({
+      item,
+      separators,
+      isSelected, // [macOS]
+    }: RenderItemProps<Item>) => {
       return (
         <ItemComponent
           item={item}
@@ -362,6 +403,7 @@ class FlatListExample extends React.PureComponent<Props, State> {
           onShowUnderlay={separators.highlight}
           onHideUnderlay={separators.unhighlight}
           textSelectable={this.state.textSelectable}
+          isSelected={isSelected} // [macOS]
         />
       );
     };
@@ -410,6 +452,10 @@ class FlatListExample extends React.PureComponent<Props, State> {
   _pressItem = (key: string) => {
     this._listRef?.recordInteraction();
     const index = this.state.data.findIndex(item => item.key === key);
+    // [macOS
+    if (this.state.enableSelectionOnKeyPress) {
+      this._listRef && this._listRef.selectRowAtIndex(index);
+    } // macOS]
     const itemState = pressItem(this.state.data[index]);
     this.setState(state => ({
       ...state,

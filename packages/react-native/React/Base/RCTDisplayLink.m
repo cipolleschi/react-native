@@ -8,19 +8,24 @@
 #import "RCTDisplayLink.h"
 
 #import <Foundation/Foundation.h>
-#import <QuartzCore/CADisplayLink.h>
 
+#import "RCTPlatformDisplayLink.h" // [macOS]
 #import "RCTAssert.h"
 #import "RCTBridgeModule.h"
 #import "RCTFrameUpdate.h"
 #import "RCTModuleData.h"
 #import "RCTProfile.h"
 
+#if TARGET_OS_OSX // [macOS Github#533
+// To compile in Xcode 12 beta 4 on macOS, we need to explicitly pull in the framework to get the definition for CACurrentMediaTime()
+#import <Quartz/Quartz.h>
+#endif // macOS]
+
 #define RCTAssertRunLoop() \
   RCTAssert(_runLoop == [NSRunLoop currentRunLoop], @"This method must be called on the CADisplayLink run loop")
 
 @implementation RCTDisplayLink {
-  CADisplayLink *_jsDisplayLink;
+  RCTPlatformDisplayLink *_jsDisplayLink; // [macOS]
   NSMutableSet<RCTModuleData *> *_frameUpdateObservers;
   NSRunLoop *_runLoop;
 }
@@ -29,7 +34,7 @@
 {
   if ((self = [super init])) {
     _frameUpdateObservers = [NSMutableSet new];
-    _jsDisplayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_jsThreadUpdate:)];
+    _jsDisplayLink = [RCTPlatformDisplayLink displayLinkWithTarget:self selector:@selector(_jsThreadUpdate:)]; // [macOS]
   }
 
   return self;
@@ -114,7 +119,7 @@
   }
 }
 
-- (void)_jsThreadUpdate:(CADisplayLink *)displayLink
+- (void)_jsThreadUpdate:(RCTPlatformDisplayLink *)displayLink // [macOS]
 {
   RCTAssertRunLoop();
 

@@ -7,11 +7,11 @@
 
 #import <React/RCTComponent.h>
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RCTVirtualTextView : UIView
+@interface RCTVirtualTextView : RCTUIView // [macOS]
 
 /**
  * (Experimental and unused for Paper) Pointer event handlers.

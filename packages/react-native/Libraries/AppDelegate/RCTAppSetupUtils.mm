@@ -7,23 +7,23 @@
 
 #import "RCTAppSetupUtils.h"
 
+#import <React/RCTJSIExecutorRuntimeInstaller.h>
+#import <react/renderer/runtimescheduler/RuntimeScheduler.h>
+#import <react/renderer/runtimescheduler/RuntimeSchedulerBinding.h>
+
 #if RCT_NEW_ARCH_ENABLED
 // Turbo Module
-#import <React/CoreModulesPlugins.h>
 #import <React/RCTBundleAssetImageLoader.h>
 #import <React/RCTDataRequestHandler.h>
 #import <React/RCTFileRequestHandler.h>
 #import <React/RCTGIFImageDecoder.h>
 #import <React/RCTHTTPRequestHandler.h>
 #import <React/RCTImageLoader.h>
-#import <React/RCTJSIExecutorRuntimeInstaller.h>
 #import <React/RCTNetworking.h>
 
 // Fabric
 #import <React/RCTFabricSurface.h>
 #import <React/RCTSurfaceHostingProxyRootView.h>
-#import <react/renderer/runtimescheduler/RuntimeScheduler.h>
-#import <react/renderer/runtimescheduler/RuntimeSchedulerBinding.h>
 #endif
 
 #ifdef FB_SONARKIT_ENABLED
@@ -58,13 +58,15 @@ void RCTAppSetupPrepareApp(UIApplication *application, BOOL turboModuleEnabled)
 #endif
 
 #if DEBUG
+#if !TARGET_OS_OSX // [macOS]
   // Disable idle timer in dev builds to avoid putting application in background and complicating
   // Metro reconnection logic. Users only need this when running the application using our CLI tooling.
   application.idleTimerDisabled = YES;
+#endif // macOS]
 #endif
 }
 
-UIView *
+RCTUIView * // [macOS]
 RCTAppSetupDefaultRootView(RCTBridge *bridge, NSString *moduleName, NSDictionary *initialProperties, BOOL fabricEnabled)
 {
 #if RCT_NEW_ARCH_ENABLED
@@ -107,7 +109,7 @@ id<RCTTurboModule> RCTAppSetupDefaultModuleFromClass(Class moduleClass)
 std::unique_ptr<facebook::react::JSExecutorFactory> RCTAppSetupDefaultJsExecutorFactory(
     RCTBridge *bridge,
     RCTTurboModuleManager *turboModuleManager,
-    std::shared_ptr<facebook::react::RuntimeScheduler> const &runtimeScheduler)
+    const std::shared_ptr<facebook::react::RuntimeScheduler> &runtimeScheduler)
 {
   // Necessary to allow NativeModules to lookup TurboModules
   [bridge setRCTTurboModuleRegistry:turboModuleManager];
@@ -120,13 +122,13 @@ std::unique_ptr<facebook::react::JSExecutorFactory> RCTAppSetupDefaultJsExecutor
    * NativeModule.
    */
   [turboModuleManager moduleForName:"RCTDevMenu"];
-#endif
+#endif // end RCT_DEV
 
 #if RCT_USE_HERMES
   return std::make_unique<facebook::react::HermesExecutorFactory>(
 #else
   return std::make_unique<facebook::react::JSCExecutorFactory>(
-#endif
+#endif // end RCT_USE_HERMES
       facebook::react::RCTJSIExecutorRuntimeInstaller(
           [turboModuleManager, bridge, runtimeScheduler](facebook::jsi::Runtime &runtime) {
             if (!bridge || !turboModuleManager) {
@@ -139,4 +141,24 @@ std::unique_ptr<facebook::react::JSExecutorFactory> RCTAppSetupDefaultJsExecutor
           }));
 }
 
-#endif
+#else // else !RCT_NEW_ARCH_ENABLED
+
+std::unique_ptr<facebook::react::JSExecutorFactory> RCTAppSetupJsExecutorFactoryForOldArch(
+    RCTBridge *bridge,
+    const std::shared_ptr<facebook::react::RuntimeScheduler> &runtimeScheduler)
+{
+#if RCT_USE_HERMES
+  return std::make_unique<facebook::react::HermesExecutorFactory>(
+#else
+  return std::make_unique<facebook::react::JSCExecutorFactory>(
+#endif // end RCT_USE_HERMES
+      facebook::react::RCTJSIExecutorRuntimeInstaller([bridge, runtimeScheduler](facebook::jsi::Runtime &runtime) {
+        if (!bridge) {
+          return;
+        }
+        if (runtimeScheduler) {
+          facebook::react::RuntimeSchedulerBinding::createAndInstallIfNeeded(runtime, runtimeScheduler);
+        }
+      }));
+}
+#endif // end RCT_NEW_ARCH_ENABLED

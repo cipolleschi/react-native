@@ -5,12 +5,16 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTDynamicTypeRamp.h>
 #import <React/RCTTextDecorationLineType.h>
 
 #import "RCTTextTransform.h"
+
+#if TARGET_OS_OSX // [macOS
+#import <React/RCTCursor.h>
+#endif // macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,8 +29,8 @@ extern NSString *const RCTTextAttributesTagAttributeName;
 @interface RCTTextAttributes : NSObject <NSCopying>
 
 // Color
-@property (nonatomic, strong, nullable) UIColor *foregroundColor;
-@property (nonatomic, strong, nullable) UIColor *backgroundColor;
+@property (nonatomic, strong, nullable) RCTUIColor *foregroundColor; // [macOS]
+@property (nonatomic, strong, nullable) RCTUIColor *backgroundColor; // [macOS]
 @property (nonatomic, assign) CGFloat opacity;
 // Font
 @property (nonatomic, copy, nullable) NSString *fontFamily;
@@ -45,18 +49,22 @@ extern NSString *const RCTTextAttributesTagAttributeName;
 @property (nonatomic, assign) NSWritingDirection baseWritingDirection;
 @property (nonatomic, assign) NSLineBreakStrategy lineBreakStrategy;
 // Decoration
-@property (nonatomic, strong, nullable) UIColor *textDecorationColor;
+@property (nonatomic, strong, nullable) RCTUIColor *textDecorationColor; // [macOS]
 @property (nonatomic, assign) NSUnderlineStyle textDecorationStyle;
 @property (nonatomic, assign) RCTTextDecorationLineType textDecorationLine;
 // Shadow
 @property (nonatomic, assign) CGSize textShadowOffset;
 @property (nonatomic, assign) CGFloat textShadowRadius;
-@property (nonatomic, strong, nullable) UIColor *textShadowColor;
+@property (nonatomic, strong, nullable) RCTUIColor *textShadowColor; // [macOS]
 // Special
 @property (nonatomic, assign) BOOL isHighlighted;
 @property (nonatomic, strong, nullable) NSNumber *tag;
 @property (nonatomic, assign) UIUserInterfaceLayoutDirection layoutDirection;
 @property (nonatomic, assign) RCTTextTransform textTransform;
+
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic, assign) RCTCursor cursor;
+#endif // macOS]
 
 #pragma mark - Inheritance
 
@@ -87,8 +95,8 @@ extern NSString *const RCTTextAttributesTagAttributeName;
 /**
  * Foreground and background colors with opacity and right defaults.
  */
-- (UIColor *)effectiveForegroundColor;
-- (UIColor *)effectiveBackgroundColor;
+- (RCTUIColor *)effectiveForegroundColor; // [macOS]
+- (RCTUIColor *)effectiveBackgroundColor; // [macOS]
 
 /**
  * Text transformed per 'none', 'uppercase', 'lowercase', 'capitalize'

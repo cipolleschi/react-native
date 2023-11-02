@@ -133,7 +133,7 @@ function Header(props: {
         props.noBottomPadding === true ? styles.headerNoBottomPadding : null,
         {
           backgroundColor:
-            Platform.OS === 'ios'
+            Platform.OS === 'ios' || Platform.OS === 'macos' // [macOS]
               ? props.theme.SystemBackgroundColor
               : props.theme.BackgroundColor,
         },
@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: Platform.select({
       ios: StyleSheet.hairlineWidth,
       android: 0,
+      macos: StyleSheet.hairlineWidth, // [macOS]
     }),
     marginHorizontal: 15,
   },

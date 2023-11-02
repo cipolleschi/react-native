@@ -56,6 +56,7 @@ inline static UIFontWeight RCTUIFontWeightFromInteger(NSInteger fontWeight)
   return weights[(fontWeight + 50) / 100 - 1];
 }
 
+#if !TARGET_OS_OSX // [macOS]
 inline static UIFontTextStyle RCTUIFontTextStyleForDynamicTypeRamp(const DynamicTypeRamp &dynamicTypeRamp)
 {
   switch (dynamicTypeRamp) {
@@ -83,6 +84,7 @@ inline static UIFontTextStyle RCTUIFontTextStyleForDynamicTypeRamp(const Dynamic
       return UIFontTextStyleLargeTitle;
   }
 }
+#endif // [macOS]
 
 inline static CGFloat RCTBaseSizeForDynamicTypeRamp(const DynamicTypeRamp &dynamicTypeRamp)
 {
@@ -117,6 +119,7 @@ inline static CGFloat RCTBaseSizeForDynamicTypeRamp(const DynamicTypeRamp &dynam
 inline static CGFloat RCTEffectiveFontSizeMultiplierFromTextAttributes(const TextAttributes &textAttributes)
 {
   if (textAttributes.allowFontScaling.value_or(true)) {
+#if !TARGET_OS_OSX // [macOS]
     if (textAttributes.dynamicTypeRamp.has_value()) {
       DynamicTypeRamp dynamicTypeRamp = textAttributes.dynamicTypeRamp.value();
       UIFontMetrics *fontMetrics =
@@ -128,6 +131,9 @@ inline static CGFloat RCTEffectiveFontSizeMultiplierFromTextAttributes(const Tex
     } else {
       return textAttributes.fontSizeMultiplier;
     }
+#else // [macOS
+    return textAttributes.fontSizeMultiplier;
+#endif // macOS]
   } else {
     return 1.0;
   }
@@ -135,7 +141,7 @@ inline static CGFloat RCTEffectiveFontSizeMultiplierFromTextAttributes(const Tex
 
 inline static UIFont *RCTEffectiveFontFromTextAttributes(const TextAttributes &textAttributes)
 {
-  NSString *fontFamily = [NSString stringWithCString:textAttributes.fontFamily.c_str() encoding:NSUTF8StringEncoding];
+  NSString *fontFamily = [NSString stringWithUTF8String:textAttributes.fontFamily.c_str()];
 
   RCTFontProperties fontProperties;
   fontProperties.family = fontFamily;
@@ -154,9 +160,9 @@ inline static UIFont *RCTEffectiveFontFromTextAttributes(const TextAttributes &t
   return RCTFontWithFontProperties(fontProperties);
 }
 
-inline static UIColor *RCTEffectiveForegroundColorFromTextAttributes(const TextAttributes &textAttributes)
+inline static RCTUIColor *RCTEffectiveForegroundColorFromTextAttributes(const TextAttributes &textAttributes) // [macOS]
 {
-  UIColor *effectiveForegroundColor = RCTUIColorFromSharedColor(textAttributes.foregroundColor) ?: [UIColor blackColor];
+  RCTUIColor *effectiveForegroundColor = RCTUIColorFromSharedColor(textAttributes.foregroundColor) ? RCTUIColorFromSharedColor(textAttributes.foregroundColor) : [RCTUIColor blackColor]; // [macOS]
 
   if (!isnan(textAttributes.opacity)) {
     effectiveForegroundColor = [effectiveForegroundColor
@@ -166,19 +172,19 @@ inline static UIColor *RCTEffectiveForegroundColorFromTextAttributes(const TextA
   return effectiveForegroundColor;
 }
 
-inline static UIColor *RCTEffectiveBackgroundColorFromTextAttributes(const TextAttributes &textAttributes)
+inline static RCTUIColor *RCTEffectiveBackgroundColorFromTextAttributes(const TextAttributes &textAttributes) // [macOS]
 {
-  UIColor *effectiveBackgroundColor = RCTUIColorFromSharedColor(textAttributes.backgroundColor);
+  RCTUIColor *effectiveBackgroundColor = RCTUIColorFromSharedColor(textAttributes.backgroundColor); // [macOS]
 
   if (effectiveBackgroundColor && !isnan(textAttributes.opacity)) {
     effectiveBackgroundColor = [effectiveBackgroundColor
         colorWithAlphaComponent:CGColorGetAlpha(effectiveBackgroundColor.CGColor) * textAttributes.opacity];
   }
 
-  return effectiveBackgroundColor ?: [UIColor clearColor];
+  return effectiveBackgroundColor ? effectiveBackgroundColor : [RCTUIColor clearColor]; // [macOS]
 }
 
-NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(TextAttributes const &textAttributes)
+NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(const TextAttributes &textAttributes)
 {
   NSMutableDictionary<NSAttributedStringKey, id> *attributes = [NSMutableDictionary dictionaryWithCapacity:10];
 
@@ -189,7 +195,7 @@ NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(T
   }
 
   // Colors
-  UIColor *effectiveForegroundColor = RCTEffectiveForegroundColorFromTextAttributes(textAttributes);
+  RCTUIColor *effectiveForegroundColor = RCTEffectiveForegroundColorFromTextAttributes(textAttributes); // [macOS]
 
   if (textAttributes.foregroundColor || !isnan(textAttributes.opacity)) {
     attributes[NSForegroundColorAttributeName] = effectiveForegroundColor;
@@ -251,7 +257,7 @@ NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(T
     NSUnderlineStyle style = RCTNSUnderlineStyleFromTextDecorationStyle(
         textAttributes.textDecorationStyle.value_or(TextDecorationStyle::Solid));
 
-    UIColor *textDecorationColor = RCTUIColorFromSharedColor(textAttributes.textDecorationColor);
+    RCTUIColor *textDecorationColor = RCTUIColorFromSharedColor(textAttributes.textDecorationColor); // [macOS]
 
     // Underline
     if (textDecorationLineType == TextDecorationLineType::Underline ||
@@ -291,10 +297,10 @@ NSDictionary<NSAttributedStringKey, id> *RCTNSTextAttributesFromTextAttributes(T
 
   if (textAttributes.role.has_value()) {
     std::string roleStr = toString(textAttributes.role.value());
-    attributes[RCTTextAttributesAccessibilityRoleAttributeName] = [NSString stringWithCString:roleStr.c_str()];
+    attributes[RCTTextAttributesAccessibilityRoleAttributeName] = [NSString stringWithUTF8String:roleStr.c_str()];
   } else if (textAttributes.accessibilityRole.has_value()) {
     std::string roleStr = toString(textAttributes.accessibilityRole.value());
-    attributes[RCTTextAttributesAccessibilityRoleAttributeName] = [NSString stringWithCString:roleStr.c_str()];
+    attributes[RCTTextAttributesAccessibilityRoleAttributeName] = [NSString stringWithUTF8String:roleStr.c_str()];
   }
 
   return [attributes copy];
@@ -329,8 +335,8 @@ static void RCTApplyBaselineOffset(NSMutableAttributedString *attributedText)
                             if (!font) {
                               return;
                             }
-
-                            maximumFontLineHeight = MAX(font.lineHeight, maximumFontLineHeight);
+    
+                            maximumFontLineHeight = MAX(UIFontLineHeight(font), maximumFontLineHeight); // [macOS]
                           }];
 
   if (maximumLineHeight < maximumFontLineHeight) {
@@ -371,7 +377,7 @@ NSAttributedString *RCTNSAttributedStringFromAttributedString(const AttributedSt
 
       nsAttributedStringFragment = [[NSMutableAttributedString attributedStringWithAttachment:attachment] mutableCopy];
     } else {
-      NSString *string = [NSString stringWithCString:fragment.string.c_str() encoding:NSUTF8StringEncoding];
+      NSString *string = [NSString stringWithUTF8String:fragment.string.c_str()];
 
       if (fragment.textAttributes.textTransform.has_value()) {
         auto textTransform = fragment.textAttributes.textTransform.value();
@@ -402,7 +408,7 @@ NSAttributedString *RCTNSAttributedStringFromAttributedString(const AttributedSt
   return nsAttributedString;
 }
 
-NSAttributedString *RCTNSAttributedStringFromAttributedStringBox(AttributedStringBox const &attributedStringBox)
+NSAttributedString *RCTNSAttributedStringFromAttributedStringBox(const AttributedStringBox &attributedStringBox)
 {
   switch (attributedStringBox.getMode()) {
     case AttributedStringBox::Mode::Value:

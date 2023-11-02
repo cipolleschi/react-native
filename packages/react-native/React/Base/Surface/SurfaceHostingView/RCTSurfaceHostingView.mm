@@ -21,35 +21,14 @@
 @end
 
 @implementation RCTSurfaceHostingView {
-  UIView *_Nullable _activityIndicatorView;
-  UIView *_Nullable _surfaceView;
+  RCTUIView *_Nullable _activityIndicatorView; // [macOS]
+  RCTUIView *_Nullable _surfaceView; // [macOS]
   RCTSurfaceStage _stage;
-}
-
-+ (id<RCTSurfaceProtocol>)createSurfaceWithBridge:(RCTBridge *)bridge
-                                       moduleName:(NSString *)moduleName
-                                initialProperties:(NSDictionary *)initialProperties
-{
-  return [[RCTSurface alloc] initWithBridge:bridge moduleName:moduleName initialProperties:initialProperties];
 }
 
 RCT_NOT_IMPLEMENTED(-(instancetype)init)
 RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
 RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
-
-- (instancetype)initWithBridge:(RCTBridge *)bridge
-                    moduleName:(NSString *)moduleName
-             initialProperties:(NSDictionary *)initialProperties
-               sizeMeasureMode:(RCTSurfaceSizeMeasureMode)sizeMeasureMode
-{
-  id<RCTSurfaceProtocol> surface = [[self class] createSurfaceWithBridge:bridge
-                                                              moduleName:moduleName
-                                                       initialProperties:initialProperties];
-  if (self = [self initWithSurface:surface sizeMeasureMode:sizeMeasureMode]) {
-    [surface start];
-  }
-  return self;
-}
 
 - (instancetype)initWithSurface:(id<RCTSurfaceProtocol>)surface
                 sizeMeasureMode:(RCTSurfaceSizeMeasureMode)sizeMeasureMode
@@ -63,7 +42,7 @@ RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
     [self _updateViews];
 
     // For backward compatibility with RCTRootView, set a color here instead of transparent (OS default).
-    self.backgroundColor = [UIColor whiteColor];
+    self.backgroundColor = [RCTUIColor whiteColor]; // [macOS]
   }
 
   return self;
@@ -83,7 +62,11 @@ RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
 
   RCTSurfaceMinimumSizeAndMaximumSizeFromSizeAndSizeMeasureMode(
       self.bounds.size, _sizeMeasureMode, &minimumSize, &maximumSize);
+#if !TARGET_OS_OSX // [macOS]
   CGRect windowFrame = [self.window convertRect:self.frame fromView:self.superview];
+#else // [macOS
+  CGRect windowFrame = [self.window.contentView convertRect:self.frame toView:self.superview];
+#endif // macOS]
 
   [_surface setMinimumSize:minimumSize maximumSize:maximumSize viewportOffset:windowFrame.origin];
 }
@@ -105,7 +88,11 @@ RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
 {
   if (RCTSurfaceStageIsPreparing(_stage)) {
     if (_activityIndicatorView) {
+#if !TARGET_OS_OSX // [macOS]
       return [_activityIndicatorView sizeThatFits:size];
+#else // [macOS
+      return [_activityIndicatorView fittingSize];
+#endif // macOS]
     }
 
     return CGSizeZero;
@@ -203,6 +190,7 @@ RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
 
 #pragma mark - UITraitCollection updates
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
 {
   [super traitCollectionDidChange:previousTraitCollection];
@@ -213,13 +201,29 @@ RCT_NOT_IMPLEMENTED(-(nullable instancetype)initWithCoder : (NSCoder *)coder)
                     RCTUserInterfaceStyleDidChangeNotificationTraitCollectionKey : self.traitCollection,
                   }];
 }
+#else // [macOS
+- (void)viewDidChangeEffectiveAppearance
+{
+  [super viewDidChangeEffectiveAppearance];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:RCTUserInterfaceStyleDidChangeNotification
+                    object:self
+                  userInfo:@{
+                    RCTUserInterfaceStyleDidChangeNotificationAppearanceKey : self.effectiveAppearance,
+                  }];
+}
+#endif // macOS]
 
 #pragma mark - Private stuff
 
 - (void)_invalidateLayout
 {
   [self invalidateIntrinsicContentSize];
+#if !TARGET_OS_OSX // [macOS]
   [self.superview setNeedsLayout];
+#else // [macOS
+  [self.superview setNeedsLayout:YES];
+#endif // macOS]
 }
 
 - (void)_updateViews

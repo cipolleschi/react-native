@@ -34,6 +34,9 @@
     "jscodeshift": "^0.14.0",
     "nullthrows": "^1.1.1"
   },
+  "beachball": {
+    "shouldPublish": false
+  },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/plugin-proposal-class-properties": "^7.18.0",

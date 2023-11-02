@@ -117,12 +117,6 @@ function isPackagerRunning(
       silent: true,
     }).stdout;
 
-    // TODO(huntie): Temporary string match in JSON response. We will revert
-    // this endpoint back to "packager-status:running" in the next CLI alpha.
-    if (status.includes('"status":"running"')) {
-      return 'running';
-    }
-
     return status === 'packager-status:running' ? 'running' : 'unrecognized';
   } catch (_error) {
     return 'not_running';
@@ -222,6 +216,14 @@ function buildArtifactsLocally(
 
   // need to move the scripts inside the local hermes cloned folder
   // cp sdks/hermes-engine/utils/*.sh <your_hermes_checkout>/utils/.
+  cp(
+    `${reactNativePackagePath}/sdks/hermes-engine/hermes-engine.podspec`,
+    `${reactNativePackagePath}/sdks/hermes/hermes-engine.podspec`,
+  );
+  cp(
+    `${reactNativePackagePath}/sdks/hermes-engine/hermes-utils.rb`,
+    `${reactNativePackagePath}/sdks/hermes/hermes-utils.rb`,
+  );
   cp(
     `${reactNativePackagePath}/sdks/hermes-engine/utils/*.sh`,
     `${reactNativePackagePath}/sdks/hermes/utils/.`,

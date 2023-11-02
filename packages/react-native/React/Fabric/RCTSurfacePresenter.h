@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTPrimitives.h>
 #import <React/RCTSurfacePresenterStub.h>
@@ -67,7 +67,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)synchronouslyUpdateViewOnUIThread:(NSNumber *)reactTag props:(NSDictionary *)props;
 
-- (void)setupAnimationDriverWithSurfaceHandler:(facebook::react::SurfaceHandler const &)surfaceHandler;
+- (void)setupAnimationDriverWithSurfaceHandler:(const facebook::react::SurfaceHandler &)surfaceHandler;
 
 /*
  * Deprecated.
@@ -79,7 +79,7 @@ NS_ASSUME_NONNULL_BEGIN
 /*
  * Please do not use this, this will be deleted soon.
  */
-- (nullable UIView *)findComponentViewWithTag_DO_NOT_USE_DEPRECATED:(NSInteger)tag;
+- (nullable RCTUIView *)findComponentViewWithTag_DO_NOT_USE_DEPRECATED:(NSInteger)tag; // [macOS]
 
 @end
 

@@ -6,7 +6,7 @@
  */
 
 #import <QuartzCore/QuartzCore.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTAnimationType.h>
 #import <React/RCTBorderCurve.h>
@@ -16,9 +16,8 @@
 #import <React/RCTPointerEvents.h>
 #import <React/RCTTextDecorationLineType.h>
 #import <yoga/Yoga.h>
-#if TARGET_OS_IPHONE
-#import <WebKit/WebKit.h>
-#endif
+
+@class RCTHandledKey; // [macOS]
 
 /**
  * This class provides a collection of conversion functions for mapping
@@ -66,6 +65,7 @@ typedef NSURL RCTFileURL;
 + (NSUnderlineStyle)NSUnderlineStyle:(id)json;
 + (NSWritingDirection)NSWritingDirection:(id)json;
 + (NSLineBreakStrategy)NSLineBreakStrategy:(id)json;
+#if !TARGET_OS_OSX // [macOS]
 + (UITextAutocapitalizationType)UITextAutocapitalizationType:(id)json;
 + (UITextFieldViewMode)UITextFieldViewMode:(id)json;
 + (UIKeyboardType)UIKeyboardType:(id)json;
@@ -78,14 +78,15 @@ typedef NSURL RCTFileURL;
 + (UIDataDetectorTypes)UIDataDetectorTypes:(id)json;
 #endif
 
-#if TARGET_OS_IPHONE
-+ (WKDataDetectorTypes)WKDataDetectorTypes:(id)json;
-#endif
-
 + (UIViewContentMode)UIViewContentMode:(id)json;
 #if !TARGET_OS_TV
 + (UIBarStyle)UIBarStyle:(id)json;
 #endif
+#endif // [macOS]
+
+#if TARGET_OS_OSX // [macOS
++ (NSTextCheckingTypes)NSTextCheckingTypes:(id)json;
+#endif // macOS]
 
 + (CGFloat)CGFloat:(id)json;
 + (CGPoint)CGPoint:(id)json;
@@ -98,7 +99,8 @@ typedef NSURL RCTFileURL;
 
 + (CGAffineTransform)CGAffineTransform:(id)json;
 
-+ (UIColor *)UIColor:(id)json;
++ (RCTUIColor *)UIColor:(id)json; // [macOS]
++ (RCTUIColor *)NSColor:(id)json; // [macOS]
 + (CGColorRef)CGColor:(id)json CF_RETURNS_NOT_RETAINED;
 
 + (YGValue)YGValue:(id)json;
@@ -110,7 +112,10 @@ typedef NSURL RCTFileURL;
 + (NSArray<NSURL *> *)NSURLArray:(id)json;
 + (NSArray<RCTFileURL *> *)RCTFileURLArray:(id)json;
 + (NSArray<NSNumber *> *)NSNumberArray:(id)json;
-+ (NSArray<UIColor *> *)UIColorArray:(id)json;
++ (NSArray<RCTUIColor *> *)UIColorArray:(id)json; // [macOS]
+#if TARGET_OS_OSX // [macOS
++ (NSArray<NSPasteboardType> *)NSPasteboardTypeArray:(id)json;
+#endif // macOS]
 
 typedef NSArray CGColorArray;
 + (CGColorArray *)CGColorArray:(id)json;
@@ -138,6 +143,11 @@ typedef BOOL css_backface_visibility_t;
 + (RCTBorderCurve)RCTBorderCurve:(id)json;
 + (RCTTextDecorationLineType)RCTTextDecorationLineType:(id)json;
 
+#if TARGET_OS_OSX // [macOS
++ (NSString *)accessibilityRoleFromTraits:(id)json;
+
++ (NSArray<RCTHandledKey *> *)RCTHandledKeyArray:(id)json;
+#endif // macOS]
 @end
 
 @interface RCTConvert (Deprecated)

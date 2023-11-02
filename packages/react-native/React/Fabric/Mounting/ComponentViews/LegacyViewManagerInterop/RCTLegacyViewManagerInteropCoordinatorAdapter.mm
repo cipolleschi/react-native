@@ -29,7 +29,7 @@
   [_coordinator removeObserveForTag:_tag];
 }
 
-- (UIView *)paperView
+- (RCTPlatformView *)paperView // [macOS]
 {
   if (!_paperView) {
     _paperView = [_coordinator createPaperViewWithTag:_tag];

@@ -5,15 +5,15 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
 @protocol RCTImageResponseDelegate <NSObject>
 
-- (void)didReceiveImage:(UIImage *)image metadata:(id)metadata fromObserver:(void const *)observer;
-- (void)didReceiveProgress:(float)progress fromObserver:(void const *)observer;
-- (void)didReceiveFailureFromObserver:(void const *)observer;
+- (void)didReceiveImage:(UIImage *)image metadata:(id)metadata fromObserver:(const void *)observer;
+- (void)didReceiveProgress:(float)progress fromObserver:(const void *)observer;
+- (void)didReceiveFailureFromObserver:(const void *)observer;
 
 @end
 

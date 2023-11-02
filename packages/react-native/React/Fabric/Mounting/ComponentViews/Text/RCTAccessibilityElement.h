@@ -5,11 +5,15 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if !TARGET_OS_OSX // [macOS]
 @interface RCTAccessibilityElement : UIAccessibilityElement
+#else // [macOS
+@interface RCTAccessibilityElement : NSAccessibilityElement
+#endif // macOS]
 
 /*
  * Frame of the accessibility element in parent coordinate system.

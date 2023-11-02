@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTSurfaceDelegate.h>
 #import <React/RCTSurfaceProtocol.h>
@@ -15,7 +15,7 @@
 @class RCTBridge;
 @class RCTSurface;
 
-typedef UIView *_Nullable (^RCTSurfaceHostingViewActivityIndicatorViewFactory)(void);
+typedef RCTUIView *_Nullable (^RCTSurfaceHostingViewActivityIndicatorViewFactory)(void); // [macOS]
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,14 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
  * This class can be used as easy-to-use general purpose integration point
  * of ReactNative-powered experiences in UIKit based apps.
  */
-@interface RCTSurfaceHostingView : UIView <RCTSurfaceDelegate>
-
-/**
- * Create an instance of RCTSurface to be hosted.
- */
-+ (RCTSurface *)createSurfaceWithBridge:(RCTBridge *)bridge
-                             moduleName:(NSString *)moduleName
-                      initialProperties:(NSDictionary *)initialProperties;
+@interface RCTSurfaceHostingView : RCTUIView <RCTSurfaceDelegate> // [macOS]
 
 /**
  * Designated initializer.
@@ -41,16 +34,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (instancetype)initWithSurface:(id<RCTSurfaceProtocol>)surface
                 sizeMeasureMode:(RCTSurfaceSizeMeasureMode)sizeMeasureMode NS_DESIGNATED_INITIALIZER;
-
-/**
- * Convenience initializer.
- * Instantiates a Surface object with given `bridge`, `moduleName`, and
- * `initialProperties`, and then use it to instantiate a view.
- */
-- (instancetype)initWithBridge:(RCTBridge *)bridge
-                    moduleName:(NSString *)moduleName
-             initialProperties:(NSDictionary *)initialProperties
-               sizeMeasureMode:(RCTSurfaceSizeMeasureMode)sizeMeasureMode;
 
 /**
  * Surface object which is currently using to power the view.

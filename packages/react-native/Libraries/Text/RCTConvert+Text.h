@@ -11,12 +11,28 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if TARGET_OS_OSX // [macOS
+typedef enum UITextAutocorrectionType : NSInteger {
+    UITextAutocorrectionTypeDefault,
+    UITextAutocorrectionTypeNo,
+    UITextAutocorrectionTypeYes,
+} UITextAutocorrectionType;
+
+typedef enum UITextSpellCheckingType : NSInteger {
+    UITextSpellCheckingTypeDefault,
+    UITextSpellCheckingTypeNo,
+    UITextSpellCheckingTypeYes,
+} UITextSpellCheckingType;
+#endif // macOS]
+
 @interface RCTConvert (Text)
 
 + (UITextAutocorrectionType)UITextAutocorrectionType:(nullable id)json;
 + (UITextSpellCheckingType)UITextSpellCheckingType:(nullable id)json;
 + (RCTTextTransform)RCTTextTransform:(nullable id)json;
+#if !TARGET_OS_OSX // [macOS]
 + (UITextSmartInsertDeleteType)UITextSmartInsertDeleteType:(nullable id)json;
+#endif // [macOS]
 
 @end
 

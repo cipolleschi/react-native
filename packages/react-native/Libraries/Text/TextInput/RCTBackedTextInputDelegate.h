@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 @protocol RCTBackedTextInputViewProtocol;
 
@@ -25,6 +25,13 @@ NS_ASSUME_NONNULL_BEGIN
                                // Dismisses keyboard if true
 - (void)textInputDidReturn;
 
+#if TARGET_OS_OSX // [macOS
+- (void)automaticSpellingCorrectionDidChange:(BOOL)enabled;
+- (void)continuousSpellCheckingDidChange:(BOOL)enabled;
+- (void)grammarCheckingDidChange:(BOOL)enabled;
+- (void)submitOnKeyDownIfNeeded:(NSEvent *)event;
+#endif // macOS]
+
 - (BOOL)textInputShouldSubmitOnReturn; // Checks whether to submit when return is pressed and emits an event if true.
 
 /*
@@ -37,9 +44,20 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)textInputDidChangeSelection;
 
-@optional
+- (BOOL)textInputShouldHandleDeleteBackward:(id<RCTBackedTextInputViewProtocol>)sender; // Return `YES` to have the deleteBackward event handled normally. Return `NO` to disallow it and handle it yourself. // [macOS]
+#if TARGET_OS_OSX // [macOS
+- (BOOL)textInputShouldHandleDeleteForward:(id<RCTBackedTextInputViewProtocol>)sender; // Return `YES` to have the deleteForward event handled normally. Return `NO` to disallow it and handle it yourself.
+- (BOOL)textInputShouldHandleKeyEvent:(NSEvent *)event; // Return `YES` to have the key event handled normally. Return `NO` to disallow it and handle it yourself.
+- (BOOL)hasValidKeyDownOrValidKeyUp:(NSString *)key;
+- (NSDragOperation)textInputDraggingEntered:(id<NSDraggingInfo>)draggingInfo;
+- (void)textInputDraggingExited:(id<NSDraggingInfo>)draggingInfo;
+- (BOOL)textInputShouldHandleDragOperation:(id<NSDraggingInfo>)draggingInfo;
+- (void)textInputDidCancel;  // Handle `Escape` key press.
+- (BOOL)textInputShouldHandlePaste:(id<RCTBackedTextInputViewProtocol>)sender; // Return `YES` to have the paste event handled normally. Return `NO` to disallow it and handle it yourself.
+#endif // macOS]
 
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView;
+@optional
+- (void)scrollViewDidScroll:(RCTUIScrollView *)scrollView; // [macOS]
 
 @end
 

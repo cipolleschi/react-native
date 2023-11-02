@@ -30,9 +30,38 @@ const Components: Array<RNTesterModuleInfo> = [
     module: require('../examples/FlatList/FlatListExampleIndex').default,
     category: 'ListView',
   },
+  // [macOS
+  {
+    key: 'FocusEvents',
+    module: require('../examples/FocusEventsExample/FocusEventsExample'),
+  },
+  // [macOS Github#1412
+  {
+    key: 'FocusOnMount',
+    module: require('../examples/FocusOnMount/FocusOnMount'),
+  },
+  // macOS]
+  // [macOS
+  {
+    key: 'GhostText',
+    module: require('../examples/GhostText/GhostText'),
+  },
+  // macOS]
+  {
+    key: 'KeyboardEvents',
+    module: require('../examples/KeyboardEventsExample/KeyboardEventsExample'),
+  },
+  {
+    key: 'AccessibilityShowMenu',
+    module: require('../examples/AccessibilityShowMenu/AccessibilityShowMenu'),
+  }, // macOS]
   {
     key: 'ImageExample',
     module: require('../examples/Image/ImageExample'),
+    skipTest: {
+      // [macOS
+      ios: 'Reason: -[NSURLResponse allHeaderFields]: unrecognized selector exception. Occurs upstream also.',
+    }, // macOS]
     category: 'Basic',
   },
   {
@@ -90,6 +119,10 @@ const Components: Array<RNTesterModuleInfo> = [
     module: require('../examples/ScrollView/ScrollViewIndicatorInsetsIOSExample'),
   },
   {
+    key: 'ScrollViewKeyboardInsetsExample',
+    module: require('../examples/ScrollView/ScrollViewKeyboardInsetsIOSExample'),
+  },
+  {
     key: 'SectionListIndex',
     module: require('../examples/SectionList/SectionListIndex'),
     category: 'ListView',
@@ -115,8 +148,12 @@ const Components: Array<RNTesterModuleInfo> = [
   },
   {
     key: 'TextInputExample',
-    module: require('../examples/TextInput/TextInputExample'),
+    module: require('../examples/TextInput/TextInputExample.ios'),
     category: 'Basic',
+  },
+  {
+    key: 'TooltipExample',
+    module: require('../examples/Tooltip/TooltipExample'),
   },
   {
     key: 'TouchableExample',
@@ -135,6 +172,12 @@ const Components: Array<RNTesterModuleInfo> = [
     key: 'NewArchitectureExample',
     category: 'UI',
     module: require('../examples/NewArchitecture/NewArchitectureExample'),
+    // [macOS
+    skipTest: {
+      default:
+        'Reason: requires RCT_NEW_ARCH_ENABLED flag to be set during build',
+    },
+    // macOS]
   },
   {
     key: 'PerformanceComparisonExample',
@@ -191,6 +234,7 @@ const APIs: Array<RNTesterModuleInfo> = ([
     key: 'CrashExample',
     module: require('../examples/Crash/CrashExample'),
   },
+
   {
     key: 'DevSettings',
     module: require('../examples/DevSettings/DevSettingsExample'),
@@ -257,6 +301,11 @@ const APIs: Array<RNTesterModuleInfo> = ([
   {
     key: 'RCTRootViewIOSExample',
     module: require('../examples/RCTRootView/RCTRootViewIOSExample'),
+    // [macOS
+    skipTest: {
+      default:
+        'Reason: requires native components and is convered by RCTRootViewIntegrationTests',
+    }, // macOS]
   },
   {
     key: 'RTLExample',
@@ -277,10 +326,18 @@ const APIs: Array<RNTesterModuleInfo> = ([
   {
     key: 'TransformExample',
     module: require('../examples/Transform/TransformExample'),
+    // [macOS
+    skipTest: {
+      default: 'Reason: Stack overflow in jsi, upstream issue.',
+    }, // macOS]
   },
   {
     key: 'TurboModuleExample',
     module: require('../examples/TurboModule/TurboModuleExample'),
+    // [macOS
+    skipTest: {
+      default: 'Reason: requires TurboModule to be configured in host app.',
+    }, // macOS]
   },
   {
     key: 'LegacyModuleExample',
@@ -307,6 +364,16 @@ const APIs: Array<RNTesterModuleInfo> = ([
     category: 'Basic',
     module: require('../examples/Performance/PerformanceApiExample'),
   },
+  // [macOS
+  {
+    key: 'ASANCrashExample',
+    module: require('../examples/ASAN/ASANCrashExample'),
+  },
+  {
+    key: 'Focus Ring',
+    module: require('../examples/FocusRing/FocusRingExample'),
+  },
+  // macOS]
 ]: Array<?RNTesterModuleInfo>).filter(Boolean);
 
 if (ReactNativeFeatureFlags.shouldEmitW3CPointerEvents()) {

@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTBridge.h>
 #import <React/RCTImageCache.h>
@@ -129,7 +129,6 @@ typedef NS_ENUM(NSInteger, RCTImageLoaderPriority) { RCTImageLoaderPriorityImmed
  * protocol. This method should be called in bridgeDidInitializeModule.
  */
 - (void)setImageCache:(id<RCTImageCache>)cache;
-
 @end
 
 NS_ASSUME_NONNULL_END

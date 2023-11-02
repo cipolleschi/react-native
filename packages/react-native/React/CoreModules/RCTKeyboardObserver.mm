@@ -23,6 +23,8 @@ RCT_EXPORT_MODULE()
 
 - (void)startObserving
 {
+#if !TARGET_OS_OSX // [macOS]
+
   NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
 
 #define ADD_KEYBOARD_HANDLER(NAME, SELECTOR) [nc addObserver:self selector:@selector(SELECTOR:) name:NAME object:nil]
@@ -35,6 +37,7 @@ RCT_EXPORT_MODULE()
   ADD_KEYBOARD_HANDLER(UIKeyboardDidChangeFrameNotification, keyboardDidChangeFrame);
 
 #undef ADD_KEYBOARD_HANDLER
+#endif // [macOS]
 }
 
 - (NSArray<NSString *> *)supportedEvents
@@ -90,7 +93,7 @@ NS_INLINE NSDictionary *RCTRectDictionaryValue(CGRect rect)
     @"height" : @(rect.size.height),
   };
 }
-
+#if !TARGET_OS_OSX // [macOS]
 static NSString *RCTAnimationNameForCurve(UIViewAnimationCurve curve)
 {
   switch (curve) {
@@ -106,9 +109,11 @@ static NSString *RCTAnimationNameForCurve(UIViewAnimationCurve curve)
       return @"keyboard";
   }
 }
+#endif // [macOS]
 
 static NSDictionary *RCTParseKeyboardNotification(NSNotification *notification)
 {
+#if !TARGET_OS_OSX // [macOS]
   NSDictionary *userInfo = notification.userInfo;
   CGRect beginFrame = [userInfo[UIKeyboardFrameBeginUserInfoKey] CGRectValue];
   CGRect endFrame = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
@@ -124,6 +129,9 @@ static NSDictionary *RCTParseKeyboardNotification(NSNotification *notification)
     @"easing" : RCTAnimationNameForCurve(curve),
     @"isEventFromThisApp" : isLocalUserInfoKey == 1 ? @YES : @NO,
   };
+#else // [macOS
+  return @{};
+#endif // macOS]
 }
 
 Class RCTKeyboardObserverCls(void)

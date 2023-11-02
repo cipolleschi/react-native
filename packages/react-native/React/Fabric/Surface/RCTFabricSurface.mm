@@ -66,10 +66,12 @@ using namespace facebook::react;
 
     [self _updateLayoutContext];
 
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleContentSizeCategoryDidChangeNotification:)
                                                  name:UIContentSizeCategoryDidChangeNotification
                                                object:nil];
+#endif // [macOS]
   }
 
   return self;
@@ -274,7 +276,7 @@ using namespace facebook::react;
 
 #pragma mark - Private
 
-- (SurfaceHandler const &)surfaceHandler;
+- (const SurfaceHandler &)surfaceHandler;
 {
   return *_surfaceHandler;
 }

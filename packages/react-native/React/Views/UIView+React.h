@@ -5,22 +5,29 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponent.h>
+#import <React/RCTConvert.h>
 #import <yoga/YGEnums.h>
 
 @class RCTShadowView;
 
-@interface UIView (React) <RCTComponent>
+typedef struct {
+  YGValue x;
+  YGValue y;
+  CGFloat z;
+} RCTTransformOrigin;
+
+@interface RCTPlatformView (React) <RCTComponent> // [macOS]
 
 /**
  * RCTComponent interface.
  */
-- (NSArray<UIView *> *)reactSubviews NS_REQUIRES_SUPER;
-- (UIView *)reactSuperview NS_REQUIRES_SUPER;
-- (void)insertReactSubview:(UIView *)subview atIndex:(NSInteger)atIndex NS_REQUIRES_SUPER;
-- (void)removeReactSubview:(UIView *)subview NS_REQUIRES_SUPER;
+- (NSArray<RCTPlatformView *> *)reactSubviews NS_REQUIRES_SUPER; // [macOS]
+- (RCTPlatformView *)reactSuperview NS_REQUIRES_SUPER; // [macOS]
+- (void)insertReactSubview:(RCTPlatformView *)subview atIndex:(NSInteger)atIndex NS_REQUIRES_SUPER; // [macOS]
+- (void)removeReactSubview:(RCTPlatformView *)subview NS_REQUIRES_SUPER; // [macOS]
 
 /**
  * The native id of the view, used to locate view from native codes
@@ -56,7 +63,7 @@
  * Subviews sorted by z-index. Note that this method doesn't do any caching (yet)
  * and sorts all the views each call.
  */
-- (NSArray<UIView *> *)reactZIndexSortedSubviews;
+- (NSArray<RCTPlatformView *> *)reactZIndexSortedSubviews; // [macOS]
 
 /**
  * Updates the subviews array based on the reactSubviews. Default behavior is
@@ -81,6 +88,7 @@
  */
 - (UIViewController *)reactViewController;
 
+#if !TARGET_OS_OSX // [macOS]
 /**
  * This method attaches the specified controller as a child of the
  * the owning view controller of this view. Returns NO if no view
@@ -88,6 +96,9 @@
  * attached to the view hierarchy).
  */
 - (void)reactAddControllerToClosestParent:(UIViewController *)controller;
+#endif // [macOS]
+
+- (void)reactViewDidMoveToWindow; // [macOS] Github #1412
 
 /**
  * Focus manipulation.
@@ -105,25 +116,38 @@
 @property (nonatomic, readonly) CGRect reactContentFrame;
 
 /**
+ * The anchorPoint property doesn't work in the same way as on web - updating it updates the frame.
+ * To work around this, we take both the transform and the transform-origin, and compute it ourselves
+ */
+@property (nonatomic, assign) CATransform3D reactTransform;
+@property (nonatomic, assign) RCTTransformOrigin reactTransformOrigin;
+
+/**
  * The (sub)view which represents this view in terms of accessibility.
  * ViewManager will apply all accessibility properties directly to this view.
  * May be overridden in view subclass which needs to be accessiblitywise
  * transparent in favour of some subview.
  * Defaults to `self`.
  */
-@property (nonatomic, readonly) UIView *reactAccessibilityElement;
+@property (nonatomic, readonly) RCTPlatformView *reactAccessibilityElement; // [macOS]
 
 /**
  * Accessibility properties
  */
+#if !TARGET_OS_OSX // [macOS]
 @property (nonatomic, copy) NSString *accessibilityRole;
+#else // [macOS renamed so it doesn't conflict with -[NSAccessibility accessibilityRole].
+@property (nonatomic, copy) NSString *accessibilityRoleInternal;
+#endif // macOS]
 @property (nonatomic, copy) NSString *role;
 @property (nonatomic, copy) NSDictionary<NSString *, id> *accessibilityState;
 @property (nonatomic, copy) NSArray<NSDictionary *> *accessibilityActions;
 @property (nonatomic, copy) NSDictionary *accessibilityValueInternal;
 @property (nonatomic, copy) NSString *accessibilityLanguage;
+#if !TARGET_OS_OSX // [macOS]
 @property (nonatomic) UIAccessibilityTraits accessibilityRoleTraits;
 @property (nonatomic) UIAccessibilityTraits roleTraits;
+#endif // [macOS]
 
 /**
  * Used in debugging to get a description of the view hierarchy rooted at

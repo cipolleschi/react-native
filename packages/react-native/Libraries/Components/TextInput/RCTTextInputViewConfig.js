@@ -157,6 +157,15 @@ const RCTTextInputViewConfig = {
     autoFocus: true,
     lineBreakStrategyIOS: true,
     smartInsertDelete: true,
+    // [macOS
+    clearTextOnSubmit: true,
+    grammarCheck: true,
+    hideVerticalScrollIndicator: true,
+    pastedTypes: true,
+    submitKeyEvents: true,
+    tooltip: true,
+    cursorColor: {process: require('../../StyleSheet/processColor').default},
+    // macOS]
     ...ConditionallyIgnoredEventHandlers({
       onChange: true,
       onSelectionChange: true,
@@ -165,6 +174,12 @@ const RCTTextInputViewConfig = {
       onChangeSync: true,
       onKeyPressSync: true,
       onTextInput: true,
+      // [macOS
+      onPaste: true,
+      onAutoCorrectChange: true,
+      onSpellCheckChange: true,
+      onGrammarCheckChange: true,
+      // macOS]
     }),
   },
 };

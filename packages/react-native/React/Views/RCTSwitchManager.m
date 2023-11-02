@@ -16,10 +16,15 @@
 
 RCT_EXPORT_MODULE()
 
-- (UIView *)view
+- (RCTPlatformView *)view // [macOS]
 {
   RCTSwitch *switcher = [RCTSwitch new];
+#if !TARGET_OS_OSX // [macOS]
   [switcher addTarget:self action:@selector(onChange:) forControlEvents:UIControlEventValueChanged];
+#else // [macOS
+  [switcher setTarget:self];
+  [switcher setAction:@selector(onChange:)];
+#endif // macOS]
   return switcher;
 }
 
@@ -35,20 +40,22 @@ RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(setValue : (nonnull NSNumber *)viewTag toValue : (BOOL)value)
 {
-  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
-    UIView *view = viewRegistry[viewTag];
+  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTUIView *> *viewRegistry) { // [macOS]
+    RCTUIView *view = viewRegistry[viewTag]; // [macOS]
 
-    if ([view isKindOfClass:[UISwitch class]]) {
-      [(UISwitch *)view setOn:value animated:NO];
+    if ([view isKindOfClass:[RCTSwitch class]]) {
+      [(RCTSwitch *)view setOn:value animated:NO];
     } else {
-      RCTLogError(@"view type must be UISwitch");
+      RCTLogError(@"view type must be RCTUISwitch"); // [macOS]
     }
   }];
 }
 
+#if !TARGET_OS_OSX // [macOS]
 RCT_EXPORT_VIEW_PROPERTY(onTintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(tintColor, UIColor);
 RCT_EXPORT_VIEW_PROPERTY(thumbTintColor, UIColor);
+#endif // [macOS]
 RCT_REMAP_VIEW_PROPERTY(value, on, BOOL);
 RCT_EXPORT_VIEW_PROPERTY(onChange, RCTBubblingEventBlock);
 RCT_CUSTOM_VIEW_PROPERTY(disabled, BOOL, RCTSwitch)

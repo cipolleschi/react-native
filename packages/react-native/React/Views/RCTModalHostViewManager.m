@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#if !TARGET_OS_OSX // [macOS]
 #import "RCTModalHostViewManager.h"
 
 #import "RCTBridge.h"
@@ -134,3 +135,4 @@ RCT_EXPORT_VIEW_PROPERTY(onRequestClose, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onDismiss, RCTDirectEventBlock)
 
 @end
+#endif // [macOS]

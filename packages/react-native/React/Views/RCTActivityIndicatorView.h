@@ -5,7 +5,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 @interface RCTActivityIndicatorView : UIActivityIndicatorView
+
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic, assign) UIActivityIndicatorViewStyle activityIndicatorViewStyle;
+@property (nonatomic, assign) BOOL hidesWhenStopped;
+@property (nullable, readwrite, nonatomic, strong) RCTUIColor *color; // [macOS]
+@property (nonatomic, readonly, getter=isAnimating) BOOL animating;
+- (void)startAnimating;
+- (void)stopAnimating;
+#endif // macOS]
+
 @end

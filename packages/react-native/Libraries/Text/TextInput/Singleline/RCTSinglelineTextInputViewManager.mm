@@ -23,9 +23,11 @@ RCT_EXPORT_MODULE()
   return shadowView;
 }
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
   return [[RCTSinglelineTextInputView alloc] initWithBridge:self.bridge];
 }
+
+RCT_REMAP_OSX_VIEW_PROPERTY(secureTextEntry, useSecureTextField, BOOL) // [macOS]
 
 @end

@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTImageLoader.h>
 #import <react/renderer/imagemanager/primitives.h>
@@ -64,7 +64,8 @@ inline static NSURL *NSURLFromImageSource(const facebook::react::ImageSource &im
 
     if ([urlString rangeOfString:@":"].location != NSNotFound) {
       // The URL has a scheme.
-      urlString = [urlString stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+      urlString =
+          [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
       url = [NSURL URLWithString:urlString];
       return url;
     }

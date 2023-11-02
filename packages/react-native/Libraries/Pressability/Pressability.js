@@ -12,8 +12,10 @@ import type {HostComponent} from '../Renderer/shims/ReactNativeTypes';
 import type {
   BlurEvent,
   FocusEvent,
+  KeyEvent,
   MouseEvent,
   PressEvent,
+  // [macOS]
 } from '../Types/CoreEventTypes';
 
 import SoundManager from '../Components/Sound/SoundManager';
@@ -89,12 +91,34 @@ export type PressabilityConfig = $ReadOnly<{|
   /**
    * Called after the element loses focus.
    */
-  onBlur?: ?(event: BlurEvent) => mixed,
+  onBlur?: ?(event: BlurEvent) => void,
 
   /**
    * Called after the element is focused.
    */
-  onFocus?: ?(event: FocusEvent) => mixed,
+  onFocus?: ?(event: FocusEvent) => void,
+
+  /*
+   * Called after a key down event is detected.
+   */
+  onKeyDown?: ?(event: KeyEvent) => void,
+
+  /*
+   * Called after a key up event is detected.
+   */
+  onKeyUp?: ?(event: KeyEvent) => void,
+
+  /*
+   * Array of keys to receive key down events for
+   * For arrow keys, add "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+   */
+  validKeysDown?: ?Array<string>,
+
+  /*
+   * Array of keys to receive key up events for
+   * For arrow keys, add "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+   */
+  validKeysUp?: ?Array<string>,
 
   /**
    * Called when the hover is activated to provide visual feedback.
@@ -169,6 +193,8 @@ export type EventHandlers = $ReadOnly<{|
   onBlur: (event: BlurEvent) => void,
   onClick: (event: PressEvent) => void,
   onFocus: (event: FocusEvent) => void,
+  onKeyDown: (event: KeyEvent) => void,
+  onKeyUp: (event: KeyEvent) => void,
   onMouseEnter?: (event: MouseEvent) => void,
   onMouseLeave?: (event: MouseEvent) => void,
   onPointerEnter?: (event: PointerEvent) => void,
@@ -586,6 +612,46 @@ export default class Pressability {
         () => this._config;
     }
 
+    // [macOS
+    const keyboardEventHandlers = {
+      onKeyDown: (event: KeyEvent): void => {
+        const {onKeyDown} = this._config;
+        if (onKeyDown != null) {
+          onKeyDown(event);
+        }
+        // Pressables on macOS should respond to the enter/return and spacebar keys.
+        // The keyDown event triggers a press event as well as the pressIn effect mimicking a native control behavior.
+        if (
+          (event.nativeEvent.key === 'Enter' ||
+            event.nativeEvent.key === ' ') &&
+          event.defaultPrevented !== true
+        ) {
+          const {onPress, onPressIn} = this._config;
+          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
+          onPressIn && onPressIn(event);
+          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
+          onPress && onPress(event);
+        }
+      },
+      onKeyUp: (event: KeyEvent): void => {
+        const {onKeyUp} = this._config;
+        if (onKeyUp != null) {
+          onKeyUp(event);
+        }
+        // The keyUp event triggers the pressOut effect.
+        if (
+          (event.nativeEvent.key === 'Enter' ||
+            event.nativeEvent.key === ' ') &&
+          event.defaultPrevented !== true
+        ) {
+          const {onPressOut} = this._config;
+          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
+          onPressOut && onPressOut(event);
+        }
+      },
+    };
+    // macOS]
+
     if (
       ReactNativeFeatureFlags.shouldPressibilityUseW3CPointerEventsForHover()
     ) {
@@ -634,6 +700,7 @@ export default class Pressability {
         ...focusEventHandlers,
         ...responderEventHandlers,
         ...hoverPointerEvents,
+        ...keyboardEventHandlers, // [macOS]
       };
     } else {
       const mouseEventHandlers =
@@ -686,6 +753,7 @@ export default class Pressability {
         ...focusEventHandlers,
         ...responderEventHandlers,
         ...mouseEventHandlers,
+        ...keyboardEventHandlers, // [macOS]
       };
     }
   }

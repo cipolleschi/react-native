@@ -8,9 +8,11 @@
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
 
+#import <React/RCTPlatformDisplayLink.h> // [macOS]
+
 @protocol RCTDisplayRefreshable
 
-- (void)displayDidRefresh:(CADisplayLink *)displayLink;
+- (void)displayDidRefresh:(RCTPlatformDisplayLink *)displayLink; // [macOS]
 
 @end
 
@@ -18,6 +20,6 @@
 
 @property (nonatomic, weak) id<RCTDisplayRefreshable> refreshable;
 
-+ (CADisplayLink *)displayLinkWithWeakRefreshable:(id<RCTDisplayRefreshable>)refreshable;
++ (RCTPlatformDisplayLink *)displayLinkWithWeakRefreshable:(id<RCTDisplayRefreshable>)refreshable; // [macOS]
 
 @end

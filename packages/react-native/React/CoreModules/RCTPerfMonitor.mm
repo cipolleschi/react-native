@@ -36,8 +36,8 @@
 
 static NSString *const RCTPerfMonitorCellIdentifier = @"RCTPerfMonitorCellIdentifier";
 
-static CGFloat const RCTPerfMonitorBarHeight = 50;
-static CGFloat const RCTPerfMonitorExpandHeight = 250;
+static const CGFloat RCTPerfMonitorBarHeight = 50;
+static const CGFloat RCTPerfMonitorExpandHeight = 250;
 
 typedef BOOL (*RCTJSCSetOptionType)(const char *);
 
@@ -148,7 +148,7 @@ RCT_EXPORT_MODULE()
 {
   if (!_devMenuItem) {
     __weak __typeof__(self) weakSelf = self;
-    __weak RCTDevSettings *devSettings = [self->_moduleRegistry moduleForName:"DevSettings"];
+    __weak RCTDevSettings *devSettings = [[self bridge] devSettings]; // [macOS]
     if (devSettings.isPerfMonitorShown) {
       [weakSelf show];
     }

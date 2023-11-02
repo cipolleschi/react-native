@@ -1,4 +1,4 @@
-# Contributing to React Native
+# Contributing to microsoft/react-native-macos
 
 Thank you for your interest in contributing to React Native! From commenting on and triaging issues, to reviewing and sending Pull Requests, all contributions are welcome.
 We aim to build a vibrant and inclusive [ecosystem of partners, core contributors, and community](ECOSYSTEM.md) that goes beyond the main React Native GitHub repository.

@@ -6,7 +6,7 @@
  */
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTDefines.h>
 #import <React/RCTJSThread.h>
@@ -380,7 +380,7 @@ RCT_EXTERN_C_END
 - (BOOL)moduleIsInitialized:(Class)moduleClass;
 @end
 
-typedef UIView * (^RCTBridgelessComponentViewProvider)(NSNumber *);
+typedef RCTPlatformView * (^RCTBridgelessComponentViewProvider)(NSNumber *); // [macOS]
 
 typedef void (^RCTViewRegistryUIBlock)(RCTViewRegistry *viewRegistry);
 
@@ -391,7 +391,7 @@ typedef void (^RCTViewRegistryUIBlock)(RCTViewRegistry *viewRegistry);
 - (void)setBridge:(RCTBridge *)bridge;
 - (void)setBridgelessComponentViewProvider:(RCTBridgelessComponentViewProvider)bridgelessComponentViewProvider;
 
-- (UIView *)viewForReactTag:(NSNumber *)reactTag;
+- (RCTPlatformView *)viewForReactTag:(NSNumber *)reactTag; // [macOS]
 - (void)addUIBlock:(RCTViewRegistryUIBlock)block;
 @end
 

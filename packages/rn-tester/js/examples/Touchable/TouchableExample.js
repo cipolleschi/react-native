@@ -473,6 +473,115 @@ function CustomRippleRadius() {
   );
 }
 
+// [macOS
+class TouchableHover extends React.Component<{}, $FlowFixMeState> {
+  state: any | {hoverOver: boolean} = {
+    hoverOver: false,
+  };
+
+  render(): React.Node {
+    return (
+      <View>
+        <TouchableOpacity
+          onMouseEnter={() => this._handleHover(true)}
+          onMouseLeave={() => this._handleHover(false)}
+          style={[styles.row, styles.block]}>
+          <Text style={this.state.hoverOver ? {color: 'red'} : {color: 'blue'}}>
+            Touchable Opacity with mouse enter/exit events
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableHighlight
+          onMouseEnter={() => console.log('Mouse Enter')}
+          onMouseLeave={() => console.log('Mouse Exit')}
+          activeOpacity={1}
+          disabled={true}
+          underlayColor="rgb(210, 230, 255)"
+          style={[styles.row, styles.block]}
+          onPress={() => console.log('custom THW text - highlight')}>
+          <Text style={styles.disabledButton}>
+            Touchable Highlight with mouse event logging
+          </Text>
+        </TouchableHighlight>
+      </View>
+    );
+  }
+
+  _handleHover = (hoverOver: boolean) => {
+    this.setState({hoverOver});
+  };
+}
+
+class TouchableMouseEvents extends React.Component<{}, $FlowFixMeState> {
+  state: any | {eventLog: Array<string>} = {
+    eventLog: [],
+  };
+
+  render(): React.Node {
+    return (
+      <View testID="touchable_feedback_mouse_events">
+        <View style={[styles.row, {justifyContent: 'center'}]}>
+          <TouchableOpacity
+            style={styles.wrapper}
+            testID="touchable_feedback_mouse_events_button"
+            accessibilityLabel="touchable feedback mouse events"
+            onPressIn={e => this._appendEvent('MouseIn', e.nativeEvent)}
+            onPressOut={e => this._appendEvent('MouseOut', e.nativeEvent)}
+            draggedTypes={'fileUrl'}
+            onDragEnter={e =>
+              this._appendEvent('MouseDragEnter', e.nativeEvent)
+            }
+            onDragLeave={e =>
+              this._appendEvent('MouseDragLeave', e.nativeEvent)
+            }
+            onDrop={e => this._appendEvent('MouseDrop', e.nativeEvent)}>
+            <Text style={styles.button}>Click Me</Text>
+          </TouchableOpacity>
+        </View>
+        <View
+          testID="touchable_feedback_mouse_events_console"
+          style={styles.eventLogBox}>
+          {this.state.eventLog.map((e, ii) => (
+            <Text key={ii}>{e}</Text>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  _appendEvent = (eventName: string, nativeEvent: any) => {
+    var limit = 6;
+    var eventLog = this.state.eventLog.slice(0, limit - 1);
+
+    var eventType = '';
+    if (nativeEvent.button === 0) {
+      eventType = 'left';
+    } else if (nativeEvent.button === 2) {
+      eventType = 'right';
+    }
+    var modifier = '';
+    if (nativeEvent.shiftKey) {
+      modifier += 'shift, ';
+    }
+    if (nativeEvent.ctrlKey) {
+      modifier += 'ctrl, ';
+    }
+    if (nativeEvent.altKey) {
+      modifier += 'alt, ';
+    }
+    if (nativeEvent.metaKey) {
+      modifier += 'meta, ';
+    }
+    if (modifier.length > 0) {
+      modifier = ' - ' + modifier.slice(0, -2) + ' pressed';
+    }
+
+    eventLog.unshift(eventType + eventName + modifier);
+    this.setState({eventLog});
+  };
+}
+// macOS]
+
 const remoteImage = {
   uri: 'https://www.facebook.com/favicon.ico',
 };
@@ -785,4 +894,22 @@ exports.examples = [
       return <TouchableDisabled />;
     },
   },
+  {
+    // [macOS
+    title: 'Touchable Hover',
+    description: ('<Touchable*> components reacts to mouse events ' +
+      'onMouseEnter and onMouseLeave': string),
+    render: function (): React.Element<any> {
+      return <TouchableHover />;
+    },
+  },
+  {
+    title: 'Touchable feedback mouse events',
+    description: ('<Touchable*> components reacts to mouse events ' +
+      'onPressIn, onPressOut, onDragEnter, onDragLeave, and onDrop': string),
+    render: function (): React.Element<any> {
+      return <TouchableMouseEvents />;
+    },
+    platform: 'macos',
+  }, // macOS]
 ];

@@ -22,5 +22,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
+  },
+  "license": "MIT",
+  "beachball": {
+    "shouldPublish": false
   }
 }

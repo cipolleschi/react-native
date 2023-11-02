@@ -6,11 +6,14 @@
  */
 
 #import <React/RCTEventEmitter.h>
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h>
+#if !TARGET_OS_OSX // [macOS]
 #import <UIKit/UIUserActivity.h>
+#endif // [macOS]
 
 @interface RCTLinkingManager : RCTEventEmitter
 
+#if !TARGET_OS_OSX // [macOS]
 + (BOOL)application:(nonnull UIApplication *)app
             openURL:(nonnull NSURL *)URL
             options:(nonnull NSDictionary<UIApplicationOpenURLOptionsKey, id> *)options;
@@ -23,5 +26,9 @@
 + (BOOL)application:(nonnull UIApplication *)application
     continueUserActivity:(nonnull NSUserActivity *)userActivity
       restorationHandler:(nonnull void (^)(NSArray<id<UIUserActivityRestoring>> *_Nullable))restorationHandler;
+#else // [macOS
++ (void)getUrlEventHandler:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent;
++ (void)setAlwaysForegroundLastWindow:(BOOL)alwaysForeground;
+#endif // macOS]
 
 @end

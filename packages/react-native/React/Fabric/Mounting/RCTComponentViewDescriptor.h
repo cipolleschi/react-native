@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponentViewProtocol.h>
 
@@ -21,8 +21,7 @@ class RCTComponentViewDescriptor final {
   /*
    * Associated (and owned) native view instance.
    */
-  __strong UIView<RCTComponentViewProtocol> *view = nil;
-
+  __strong RCTUIView<RCTComponentViewProtocol> *view = nil; // [macOS]
   /*
    * Indicates a requirement to call on the view methods from
    * `RCTMountingTransactionObserving` protocol.
@@ -31,19 +30,19 @@ class RCTComponentViewDescriptor final {
   bool observesMountingTransactionDidMount{false};
 };
 
-inline bool operator==(RCTComponentViewDescriptor const &lhs, RCTComponentViewDescriptor const &rhs)
+inline bool operator==(const RCTComponentViewDescriptor &lhs, const RCTComponentViewDescriptor &rhs)
 {
   return lhs.view == rhs.view;
 }
 
-inline bool operator!=(RCTComponentViewDescriptor const &lhs, RCTComponentViewDescriptor const &rhs)
+inline bool operator!=(const RCTComponentViewDescriptor &lhs, const RCTComponentViewDescriptor &rhs)
 {
   return lhs.view != rhs.view;
 }
 
 template <>
 struct std::hash<RCTComponentViewDescriptor> {
-  size_t operator()(RCTComponentViewDescriptor const &componentViewDescriptor) const
+  size_t operator()(const RCTComponentViewDescriptor &componentViewDescriptor) const
   {
     return std::hash<void *>()((__bridge void *)componentViewDescriptor.view);
   }

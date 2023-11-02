@@ -5,10 +5,14 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTView.h>
 
 @interface RCTScrollContentView : RCTView
+
+#if TARGET_OS_OSX // [macOS
+@property (nonatomic, assign, getter=isInverted) BOOL inverted;
+#endif // macOS]
 
 @end

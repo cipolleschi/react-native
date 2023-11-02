@@ -20,7 +20,7 @@
 
 RCT_EXPORT_MODULE();
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
   return [UpdatePropertiesExampleView new];
 }
@@ -29,7 +29,11 @@ RCT_EXPORT_MODULE();
 
 @implementation UpdatePropertiesExampleView {
   RCTRootView *_rootView;
+#if !TARGET_OS_OSX // [macOS]
   UIButton *_button;
+#else // [macOS
+  NSButton *_button;
+#endif // macOS]
   BOOL _beige;
 }
 
@@ -45,12 +49,21 @@ RCT_EXPORT_MODULE();
                                          moduleName:@"SetPropertiesExampleApp"
                                   initialProperties:@{@"color" : @"beige"}];
 
+    // [macOS Github#1642: Suppress analyzer error of nonlocalized string
+    NSString *buttonTitle = NSLocalizedString(@"Native Button", nil);
+#if !TARGET_OS_OSX
     _button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
-    [_button setTitle:@"Native Button" forState:UIControlStateNormal];
+    [_button setTitle:buttonTitle /* [macOS] */ forState:UIControlStateNormal];
     [_button setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [_button setBackgroundColor:[UIColor grayColor]];
 
     [_button addTarget:self action:@selector(changeColor) forControlEvents:UIControlEventTouchUpInside];
+#else
+    _button = [NSButton new];
+    [_button setTitle:buttonTitle];
+    [_button setTarget:self];
+    [_button setAction:@selector(changeColor)];
+#endif // macOS]
 
     [self addSubview:_button];
     [self addSubview:_rootView];
@@ -75,7 +88,7 @@ RCT_EXPORT_MODULE();
   [_rootView setAppProperties:@{@"color" : _beige ? @"beige" : @"purple"}];
 }
 
-- (NSArray<UIView<RCTComponent> *> *)reactSubviews
+- (NSArray<RCTUIView<RCTComponent> *> *)reactSubviews // [macOS]
 {
   // this is to avoid unregistering our RCTRootView when the component is removed from RN hierarchy
   (void)[super reactSubviews];

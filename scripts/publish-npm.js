@@ -10,13 +10,15 @@
 'use strict';
 
 const {echo, exit} = require('shelljs');
-const {publishPackage, getNpmInfo} = require('./npm-utils');
+const {getNpmInfo} = require('./npm-utils'); // [macOS] Remove publishPackage as we don't use it for React Native macOS
 const getAndUpdateNightlies = require('./monorepo/get-and-update-nightlies');
 const setReactNativeVersion = require('./set-rn-version');
+/* [macOS We do not generate Android artifacts for React Native macOS
 const {
   generateAndroidArtifacts,
   publishAndroidArtifactsToMaven,
 } = require('./release-utils');
+macOS] */
 const fs = require('fs');
 const path = require('path');
 const yargs = require('yargs');
@@ -24,6 +26,8 @@ const yargs = require('yargs');
 /**
  * This script prepares a release version of react-native and may publish to NPM.
  * It is supposed to run in CI environment, not on a developer's machine.
+ *
+ * [macOS] For React Native macOS, we have modified this script to not create Android Artifacts.
  *
  * For a dry run (commitly), this script will:
  *  * Version the commitly of the form `1000.0.0-<commitSha>`
@@ -45,28 +49,15 @@ const yargs = require('yargs');
 
 if (require.main === module) {
   const argv = yargs
-    .option('n', {
-      alias: 'nightly',
-      type: 'boolean',
-      default: false,
-    })
-    .option('d', {
-      alias: 'dry-run',
-      type: 'boolean',
-      default: false,
-    })
-    .option('r', {
-      alias: 'release',
-      type: 'boolean',
-      default: false,
+    .option('t', {
+      alias: 'builtType',
+      describe: 'The type of build you want to perform.',
+      choices: ['dry-run', 'nightly', 'release', 'prealpha'],
+      default: 'dry-run',
     })
     .strict().argv;
 
-  const buildType = argv.release
-    ? 'release'
-    : argv.nightly
-    ? 'nightly'
-    : 'dry-run';
+  const buildType = argv.builtType;
 
   publishNpm(buildType);
 }
@@ -92,11 +83,8 @@ function publishNpm(buildType) {
     }
   }
 
-  generateAndroidArtifacts(version);
-
-  // Write version number to the build folder
-  const versionFile = path.join('build', '.version');
-  fs.writeFileSync(versionFile, version);
+  // [macOS] Do not generate Android artifacts for React Native macOS
+  // generateAndroidArtifacts(version);
 
   if (buildType === 'dry-run') {
     echo('Skipping `npm publish` because --dry-run is set.');
@@ -105,7 +93,8 @@ function publishNpm(buildType) {
 
   // We first publish on Maven Central all the necessary artifacts.
   // NPM publishing is done just after.
-  publishAndroidArtifactsToMaven(version, buildType === 'nightly');
+  /* [macOS] Skip the Android Artifact and NPM Publish here as we do that in our Azure Pipeline
+  // publishAndroidArtifactsToMaven(version, buildType === 'nightly');
 
   const packagePath = path.join(__dirname, '..', 'packages', 'react-native');
   const result = publishPackage(packagePath, {
@@ -120,6 +109,7 @@ function publishNpm(buildType) {
     echo(`Published to npm ${version}`);
     return exit(0);
   }
+  macOS] */
 }
 
 module.exports = publishNpm;

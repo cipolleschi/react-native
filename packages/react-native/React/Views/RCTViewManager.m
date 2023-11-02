@@ -21,8 +21,13 @@
 #import "RCTView.h"
 #import "UIView+React.h"
 
+#if TARGET_OS_OSX  // [macOS
+#import "RCTCursor.h"
+#endif  // macOS]
+
 @implementation RCTConvert (UIAccessibilityTraits)
 
+#if !TARGET_OS_OSX // [macOS]
 RCT_MULTI_ENUM_CONVERTER(
     UIAccessibilityTraits,
     (@{
@@ -91,7 +96,7 @@ RCT_MULTI_ENUM_CONVERTER(
       @"scrollbar" : @(UIAccessibilityTraitNone),
       @"scrollview" : @(UIAccessibilityTraitNone),
       @"search" : @(UIAccessibilityTraitSearchField),
-      @"searchbox" : @(UIAccessibilityTraitNone),
+      @"searchbox" : @(UIAccessibilityTraitSearchField),
       @"selected" : @(UIAccessibilityTraitSelected),
       @"separator" : @(UIAccessibilityTraitNone),
       @"slider" : @(UIAccessibilityTraitNone),
@@ -117,9 +122,15 @@ RCT_MULTI_ENUM_CONVERTER(
       @"treeitem" : @(UIAccessibilityTraitNone),
       @"viewgroup" : @(UIAccessibilityTraitNone),
       @"webview" : @(UIAccessibilityTraitNone),
+      // [macOS a set of RN accessibilityTraits are macOS specific accessiblity roles and map to nothing on iOS
+      @"disclosure" : @(UIAccessibilityTraitNone),
+      @"group" : @(UIAccessibilityTraitNone),
+      @"table": @(UIAccessibilityTraitNone),
+      // macOS]
     }),
     UIAccessibilityTraitNone,
     unsignedLongLongValue)
+#endif // [macOS]
 
 @end
 
@@ -141,9 +152,9 @@ RCT_EXPORT_MODULE()
   _bridge = bridge;
 }
 
-- (UIView *)view
+- (RCTPlatformView *)view // [macOS]
 {
-  return [RCTView new];
+  return [[RCTView alloc] initWithEventDispatcher:self.bridge.eventDispatcher]; // [macOS]
 }
 
 - (RCTShadowView *)shadowView
@@ -172,34 +183,86 @@ RCT_EXPORT_MODULE()
   ];
 }
 
+#if TARGET_OS_OSX // [macOS
+RCT_EXPORT_METHOD(focus : (nonnull NSNumber *)viewTag)
+{
+  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTUIView *> *viewRegistry) {
+    RCTUIView *view = viewRegistry[viewTag];
+    [view reactFocus];
+  }];
+}
+
+RCT_EXPORT_METHOD(blur : (nonnull NSNumber *)viewTag)
+{
+  [self.bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTUIView *> *viewRegistry) {
+    RCTUIView *view = viewRegistry[viewTag];
+    [view reactBlur];
+  }];
+}
+#endif // macOS]
+
 #pragma mark - View properties
 
 // Accessibility related properties
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(accessible, reactAccessibilityElement.isAccessibilityElement, BOOL)
+#else // [macOS
+RCT_REMAP_VIEW_PROPERTY(accessible, reactAccessibilityElement.accessibilityElement, BOOL)
+#endif // macOS]
 RCT_REMAP_VIEW_PROPERTY(accessibilityActions, reactAccessibilityElement.accessibilityActions, NSDictionaryArray)
 RCT_REMAP_VIEW_PROPERTY(accessibilityLabel, reactAccessibilityElement.accessibilityLabel, NSString)
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(accessibilityHint, reactAccessibilityElement.accessibilityHint, NSString)
+#else // [macOS
+RCT_REMAP_VIEW_PROPERTY(accessibilityHint, reactAccessibilityElement.accessibilityHelp, NSString)
+#endif // macOS]
 RCT_REMAP_VIEW_PROPERTY(accessibilityLanguage, reactAccessibilityElement.accessibilityLanguage, NSString)
 RCT_REMAP_VIEW_PROPERTY(accessibilityValue, reactAccessibilityElement.accessibilityValueInternal, NSDictionary)
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(accessibilityViewIsModal, reactAccessibilityElement.accessibilityViewIsModal, BOOL)
 RCT_REMAP_VIEW_PROPERTY(accessibilityElementsHidden, reactAccessibilityElement.accessibilityElementsHidden, BOOL)
 RCT_REMAP_VIEW_PROPERTY(
     accessibilityIgnoresInvertColors,
     reactAccessibilityElement.shouldAccessibilityIgnoresInvertColors,
     BOOL)
+#endif // [macOS]
 RCT_REMAP_VIEW_PROPERTY(onAccessibilityAction, reactAccessibilityElement.onAccessibilityAction, RCTDirectEventBlock)
 RCT_REMAP_VIEW_PROPERTY(onAccessibilityTap, reactAccessibilityElement.onAccessibilityTap, RCTDirectEventBlock)
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(onMagicTap, reactAccessibilityElement.onMagicTap, RCTDirectEventBlock)
+#else // [macOS accessibilityTraits is gone in react-native and deprecated in react-native-macos, use accessibilityRole instead
+RCT_CUSTOM_VIEW_PROPERTY(accessibilityTraits, NSString, RCTView)
+{
+  if (json) {
+    view.accessibilityRole = [RCTConvert accessibilityRoleFromTraits:json];
+  } else {
+    view.accessibilityRole = defaultView.accessibilityRole;
+  }
+}
+#endif // macOS]
 RCT_REMAP_VIEW_PROPERTY(onAccessibilityEscape, reactAccessibilityElement.onAccessibilityEscape, RCTDirectEventBlock)
 RCT_REMAP_VIEW_PROPERTY(testID, reactAccessibilityElement.accessibilityIdentifier, NSString)
 
 RCT_EXPORT_VIEW_PROPERTY(backgroundColor, UIColor)
 RCT_REMAP_VIEW_PROPERTY(backfaceVisibility, layer.doubleSided, css_backface_visibility_t)
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(opacity, alpha, CGFloat)
+#else // [macOS
+RCT_REMAP_VIEW_PROPERTY(opacity, alphaValue, CGFloat)
+#endif // macOS]
+
+#if !TARGET_OS_OSX // [macOS]
 RCT_REMAP_VIEW_PROPERTY(shadowColor, layer.shadowColor, CGColor)
 RCT_REMAP_VIEW_PROPERTY(shadowOffset, layer.shadowOffset, CGSize)
 RCT_REMAP_VIEW_PROPERTY(shadowOpacity, layer.shadowOpacity, float)
 RCT_REMAP_VIEW_PROPERTY(shadowRadius, layer.shadowRadius, CGFloat)
+#else // [macOS
+RCT_EXPORT_VIEW_PROPERTY(shadowColor, NSColor)
+RCT_EXPORT_VIEW_PROPERTY(shadowOffset, CGSize)
+RCT_EXPORT_VIEW_PROPERTY(shadowOpacity, CGFloat)
+RCT_EXPORT_VIEW_PROPERTY(shadowRadius, CGFloat)
+#endif // macOS]
+
 RCT_REMAP_VIEW_PROPERTY(needsOffscreenAlphaCompositing, layer.allowsGroupOpacity, BOOL)
 RCT_CUSTOM_VIEW_PROPERTY(overflow, YGOverflow, RCTView)
 {
@@ -209,21 +272,19 @@ RCT_CUSTOM_VIEW_PROPERTY(overflow, YGOverflow, RCTView)
     view.clipsToBounds = defaultView.clipsToBounds;
   }
 }
+#if !TARGET_OS_OSX // [macOS]
 RCT_CUSTOM_VIEW_PROPERTY(shouldRasterizeIOS, BOOL, RCTView)
 {
   view.layer.shouldRasterize = json ? [RCTConvert BOOL:json] : defaultView.layer.shouldRasterize;
   view.layer.rasterizationScale =
       view.layer.shouldRasterize ? [UIScreen mainScreen].scale : defaultView.layer.rasterizationScale;
 }
+#endif // [macOS]
 
-RCT_CUSTOM_VIEW_PROPERTY(transform, CATransform3D, RCTView)
-{
-  view.layer.transform = json ? [RCTConvert CATransform3D:json] : defaultView.layer.transform;
-  // Enable edge antialiasing in rotation, skew, or perspective transforms
-  view.layer.allowsEdgeAntialiasing =
-      view.layer.transform.m12 != 0.0f || view.layer.transform.m21 != 0.0f || view.layer.transform.m34 != 0.0f;
-}
+RCT_REMAP_VIEW_PROPERTY(transform, reactTransform, CATransform3D)
+RCT_REMAP_VIEW_PROPERTY(transformOrigin, reactTransformOrigin, RCTTransformOrigin)
 
+#if !TARGET_OS_OSX // [macOS]
 RCT_CUSTOM_VIEW_PROPERTY(accessibilityRole, UIAccessibilityTraits, RCTView)
 {
   UIAccessibilityTraits accessibilityRoleTraits =
@@ -259,8 +320,9 @@ RCT_CUSTOM_VIEW_PROPERTY(role, UIAccessibilityTraits, RCTView)
   view.reactAccessibilityElement.accessibilityTraits |= view.reactAccessibilityElement.role
       ? view.reactAccessibilityElement.roleTraits
       : view.reactAccessibilityElement.accessibilityRole ? view.reactAccessibilityElement.accessibilityRoleTraits
-                                                         : (defaultView.accessibilityTraits & AccessibilityRolesMask);
+                                                         : (defaultView.accessibilityTraits & AccessibilityRolesMask);                        
 }
+#endif // [macOS]
 
 RCT_CUSTOM_VIEW_PROPERTY(accessibilityState, NSDictionary, RCTView)
 {
@@ -271,6 +333,7 @@ RCT_CUSTOM_VIEW_PROPERTY(accessibilityState, NSDictionary, RCTView)
     return;
   }
 
+#if !TARGET_OS_OSX // [macOS]
   const UIAccessibilityTraits AccessibilityStatesMask = UIAccessibilityTraitNotEnabled | UIAccessibilityTraitSelected;
   view.reactAccessibilityElement.accessibilityTraits =
       view.reactAccessibilityElement.accessibilityTraits & ~AccessibilityStatesMask;
@@ -288,11 +351,17 @@ RCT_CUSTOM_VIEW_PROPERTY(accessibilityState, NSDictionary, RCTView)
       newState[s] = val;
     }
   }
+#else // [macOS
+  for (NSString *s in state) {
+    id val = [state objectForKey:s];
+    if (val == nil) {
+      continue;
+    }
+    newState[s] = val;
+  }
+#endif // macOS]
   if (newState.count > 0) {
     view.reactAccessibilityElement.accessibilityState = newState;
-    // Post a layout change notification to make sure VoiceOver get notified for the state
-    // changes that don't happen upon users' click.
-    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, nil);
   } else {
     view.reactAccessibilityElement.accessibilityState = nil;
   }
@@ -391,6 +460,47 @@ RCT_CUSTOM_VIEW_PROPERTY(hitSlop, UIEdgeInsets, RCTView)
   }
 }
 
+#if TARGET_OS_OSX // [macOS
+// macOS properties
+RCT_CUSTOM_VIEW_PROPERTY(acceptsFirstMouse, BOOL, RCTView)
+{
+  if ([view respondsToSelector:@selector(setAcceptsFirstMouse:)]) {
+    view.acceptsFirstMouse = json ? [RCTConvert BOOL:json] : defaultView.acceptsFirstMouse;
+  }
+}
+
+RCT_EXPORT_VIEW_PROPERTY(mouseDownCanMoveWindow, BOOL)
+
+RCT_REMAP_VIEW_PROPERTY(allowsVibrancy, allowsVibrancyInternal, BOOL)
+
+RCT_CUSTOM_VIEW_PROPERTY(focusable, BOOL, RCTView)
+{
+  if ([view respondsToSelector:@selector(setFocusable:)]) {
+    view.focusable = json ? [RCTConvert BOOL:json] : defaultView.focusable;
+  }
+}
+
+RCT_CUSTOM_VIEW_PROPERTY(enableFocusRing, BOOL, RCTView)
+{
+  if ([view respondsToSelector:@selector(setEnableFocusRing:)]) {
+    view.enableFocusRing = json ? [RCTConvert BOOL:json] : defaultView.enableFocusRing;
+  }
+}
+
+RCT_REMAP_VIEW_PROPERTY(tooltip, toolTip, NSString)
+
+RCT_CUSTOM_VIEW_PROPERTY(draggedTypes, NSArray<NSPasteboardType>*, RCTView)
+{
+  NSArray<NSPasteboardType> *currentTypes = view.registeredDraggedTypes;
+  NSArray<NSPasteboardType> *types = json ? [RCTConvert NSPasteboardTypeArray:json] : defaultView.registeredDraggedTypes;
+  if (![currentTypes isEqualToArray:types]) {
+    [view unregisterDraggedTypes];
+  }
+  [view registerForDraggedTypes:types];
+}
+
+#endif // macOS]
+
 RCT_CUSTOM_VIEW_PROPERTY(collapsable, BOOL, RCTView)
 {
   // Property is only to be used in the new renderer.
@@ -452,6 +562,29 @@ RCT_VIEW_BORDER_RADIUS_PROPERTY(StartStart)
 
 RCT_REMAP_VIEW_PROPERTY(display, reactDisplay, YGDisplay)
 RCT_REMAP_VIEW_PROPERTY(zIndex, reactZIndex, NSInteger)
+
+// [macOS
+RCT_EXPORT_VIEW_PROPERTY(onFocus, RCTBubblingEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onBlur, RCTBubblingEventBlock)
+// macOS]
+
+
+#if TARGET_OS_OSX // [macOS
+#pragma mark - macOS properties
+
+RCT_EXPORT_VIEW_PROPERTY(cursor, RCTCursor)
+RCT_EXPORT_VIEW_PROPERTY(onMouseEnter, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onMouseLeave, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onDragEnter, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onDragLeave, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onDrop, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(passthroughAllKeyEvents, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(onKeyDown, RCTDirectEventBlock) // macOS keyboard events
+RCT_EXPORT_VIEW_PROPERTY(onKeyUp, RCTDirectEventBlock) // macOS keyboard events
+RCT_EXPORT_VIEW_PROPERTY(validKeysDown, NSArray<RCTHandledKey *>)
+RCT_EXPORT_VIEW_PROPERTY(validKeysUp, NSArray<RCTHandledKey *>)
+
+#endif // macOS]
 
 #pragma mark - ShadowView properties
 

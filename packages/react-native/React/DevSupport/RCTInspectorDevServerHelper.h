@@ -6,8 +6,7 @@
  */
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-
+#import <React/RCTUIKit.h> // [macOS]
 #import <React/RCTDefines.h>
 #import <React/RCTInspectorPackagerConnection.h>
 
@@ -17,7 +16,7 @@
 
 + (RCTInspectorPackagerConnection *)connectWithBundleURL:(NSURL *)bundleURL;
 + (void)disableDebugger;
-+ (void)openURL:(NSString *)url withBundleURL:(NSURL *)bundleURL withErrorMessage:(NSString *)errorMessage;
++ (void)openDebugger:(NSURL *)bundleURL withErrorMessage:(NSString *)errorMessage;
 @end
 
 #endif

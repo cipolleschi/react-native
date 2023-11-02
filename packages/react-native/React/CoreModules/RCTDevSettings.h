@@ -30,6 +30,13 @@
  */
 - (id)settingForKey:(NSString *)key;
 
+// [macOS
+/**
+ * Returns all keys that are overridden
+ */
+- (NSArray<NSString *> *)overridenKeys;
+// macOS]
+
 @end
 
 @protocol RCTDevSettingsInspectable <NSObject>
@@ -61,6 +68,14 @@
  * you may wish to disable it so that you can provide your own shake handler.
  */
 @property (nonatomic, assign) BOOL isShakeToShowDevMenuEnabled;
+
+// [macOS
+/*
+ * Whether secondary click will show RCTDevMenu. The menu is enabled by default if RCT_DEV=1, but
+ * you may wish to disable it so that you can provide your own contextual menu.
+ */
+@property (nonatomic, assign) BOOL isSecondaryClickToShowDevMenuEnabled;
+// macOS]
 
 /**
  * Whether performance profiling is enabled.

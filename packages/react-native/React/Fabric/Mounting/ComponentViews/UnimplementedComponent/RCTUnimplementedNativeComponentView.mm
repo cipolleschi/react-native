@@ -14,7 +14,7 @@
 using namespace facebook::react;
 
 @implementation RCTUnimplementedNativeComponentView {
-  UILabel *_label;
+  RCTUILabel *_label; // [macOS]
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -24,15 +24,21 @@ using namespace facebook::react;
     _props = defaultProps;
 
     CGRect bounds = self.bounds;
-    _label = [[UILabel alloc] initWithFrame:bounds];
-    _label.backgroundColor = [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.3];
+    _label = [[RCTUILabel alloc] initWithFrame:bounds];  // [macOS]
+    _label.backgroundColor = [RCTUIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:0.3];
+#if !TARGET_OS_OSX // [macOS]
     _label.layoutMargins = UIEdgeInsetsMake(12, 12, 12, 12);
+#endif // [macOS]
     _label.lineBreakMode = NSLineBreakByWordWrapping;
     _label.numberOfLines = 0;
     _label.textAlignment = NSTextAlignmentCenter;
-    _label.textColor = [UIColor whiteColor];
+    _label.textColor = [RCTUIColor whiteColor]; // [macOS]
 
+#if !TARGET_OS_OSX // [macOS]
     self.contentView = _label;
+#else // [macOS
+    [self.contentView addSubview:_label];
+#endif // macOS]
   }
 
   return self;
@@ -45,10 +51,10 @@ using namespace facebook::react;
   return concreteComponentDescriptorProvider<UnimplementedNativeViewComponentDescriptor>();
 }
 
-- (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
+- (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
 {
-  const auto &oldViewProps = static_cast<UnimplementedNativeViewProps const &>(*_props);
-  const auto &newViewProps = static_cast<UnimplementedNativeViewProps const &>(*props);
+  const auto &oldViewProps = static_cast<const UnimplementedNativeViewProps &>(*_props);
+  const auto &newViewProps = static_cast<const UnimplementedNativeViewProps &>(*props);
 
   if (oldViewProps.name != newViewProps.name) {
     _label.text = [NSString stringWithFormat:@"'%s' is not Fabric compatible yet.", newViewProps.name.c_str()];

@@ -26,9 +26,9 @@
   _bridgelessComponentViewProvider = bridgelessComponentViewProvider;
 }
 
-- (UIView *)viewForReactTag:(NSNumber *)reactTag
+- (RCTPlatformView *)viewForReactTag:(NSNumber *)reactTag // [macOS]
 {
-  UIView *view = nil;
+  RCTPlatformView *view = nil; // [macOS]
 
   RCTBridge *bridge = _bridge;
   if (bridge) {
@@ -50,7 +50,7 @@
 
   __weak __typeof(self) weakSelf = self;
   if (_bridge) {
-    [_bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+    [_bridge.uiManager addUIBlock:^(RCTUIManager *uiManager, NSDictionary<NSNumber *, RCTPlatformView *> *viewRegistry) {
       __typeof(self) strongSelf = weakSelf;
       if (strongSelf) {
         block(strongSelf);

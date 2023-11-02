@@ -15,7 +15,8 @@
 #import "RCTBridge+Private.h"
 #import "RCTBridge.h"
 #import "RCTConstants.h"
-#import "RCTKeyCommands.h"
+#import "RCTDevSettings.h" // [macOS]
+// [macOS] remove #import "RCTKeyCommands.h"
 #import "RCTLog.h"
 #import "RCTPerformanceLogger.h"
 #import "RCTProfile.h"
@@ -27,6 +28,10 @@
 #import "RCTUtils.h"
 #import "RCTView.h"
 #import "UIView+React.h"
+
+#if __has_include("RCTDevMenu.h") // [macOS
+#import "RCTDevMenu.h"
+#endif // macOS]
 
 NSString *const RCTContentDidAppearNotification = @"RCTContentDidAppearNotification";
 
@@ -59,7 +64,9 @@ NSString *const RCTContentDidAppearNotification = @"RCTContentDidAppearNotificat
   }
 
   if (self = [super initWithFrame:frame]) {
+    /* [TODO(OSS Candidate ISS#2710739): don't set the background color on mac or ios so that the view is invisible during initial render
     self.backgroundColor = [UIColor whiteColor];
+    ]TODO(OSS Candidate ISS#2710739) */
 
     _bridge = bridge;
     _moduleName = moduleName;
@@ -116,24 +123,9 @@ NSString *const RCTContentDidAppearNotification = @"RCTContentDidAppearNotificat
 RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
 RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
 
-- (UIView *)view
+- (RCTUIView *)view // [macOS]
 {
   return self;
-}
-
-- (BOOL)hasBridge
-{
-  return _bridge != nil;
-}
-
-- (RCTModuleRegistry *)moduleRegistry
-{
-  return _bridge.moduleRegistry;
-}
-
-- (id<RCTEventDispatcherProtocol>)eventDispatcher
-{
-  return [self.moduleRegistry moduleForName:"EventDispatcher"];
 }
 
 #pragma mark - passThroughTouches
@@ -171,7 +163,24 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
 {
   [super layoutSubviews];
   _contentView.frame = self.bounds;
+#if !TARGET_OS_OSX // [macOS]
   _loadingView.center = (CGPoint){CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds)};
+#else // [macOS
+  NSRect bounds = self.bounds;
+  NSSize loadingViewSize = _loadingView.frame.size;
+  CGFloat scale = self.window.backingScaleFactor;
+  if (scale == 0.0 && RCTRunningInTestEnvironment()) {
+    // When running in the test environment the view is not on screen.
+    // Use a scaleFactor of 1 so that the test results are machine independent.
+    scale = 1;
+  }
+  RCTAssert(scale != 0.0, @"Layout occurs before the view is in a window?");
+
+  _loadingView.frameOrigin = NSMakePoint(
+    RCTRoundPixelValue(bounds.origin.x + ((bounds.size.width - loadingViewSize.width) / 2), scale),
+    RCTRoundPixelValue(bounds.origin.y + ((bounds.size.height - loadingViewSize.height) / 2), scale)
+  );
+#endif // macOS]
 }
 
 - (void)setMinimumSize:(CGSize)minimumSize
@@ -198,10 +207,14 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
 
 - (BOOL)canBecomeFirstResponder
 {
+#if !TARGET_OS_OSX // [macOS]
   return YES;
+#else // [macOS
+  return NO; // commit 01aba7e8: Merged PR 94656: Enable keyboard accessibility and support for focus ring drawing for button, textfields etc
+#endif // macOS]
 }
 
-- (void)setLoadingView:(UIView *)loadingView
+- (void)setLoadingView:(RCTUIView *)loadingView // [macOS]
 {
   _loadingView = loadingView;
   if (!_contentView.contentHasAppeared) {
@@ -225,6 +238,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
           dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_loadingViewFadeDelay * NSEC_PER_SEC)),
           dispatch_get_main_queue(),
           ^{
+#if !TARGET_OS_OSX // [macOS]
             [UIView transitionWithView:self
                 duration:self->_loadingViewFadeDuration
                 options:UIViewAnimationOptionTransitionCrossDissolve
@@ -234,7 +248,16 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
                 completion:^(__unused BOOL finished) {
                   [self->_loadingView removeFromSuperview];
                 }];
-          });
+#else // [macOS
+                       [NSAnimationContext runAnimationGroup:^(__unused NSAnimationContext *context) {
+                         self->_loadingView.animator.alphaValue = 0.0;
+                       } completionHandler:^{
+                         [self->_loadingView removeFromSuperview];
+                         self->_loadingView.hidden = YES;
+                         self->_loadingView.alphaValue = 1.0;
+                       }];
+#endif // macOS]
+                     });
     } else {
       _loadingView.hidden = YES;
       [_loadingView removeFromSuperview];
@@ -322,10 +345,10 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
   _contentView.sizeFlexibility = _sizeFlexibility;
 }
 
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+- (RCTPlatformView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event // [macOS]
 {
   // The root view itself should never receive touches
-  UIView *hitView = [super hitTest:point withEvent:event];
+  RCTPlatformView *hitView = [super hitTest:point withEvent:event]; // [macOS]
   if (self.passThroughTouches && hitView == self) {
     return nil;
   }
@@ -357,13 +380,24 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
 
   _intrinsicContentSize = intrinsicContentSize;
 
+  [self invalidateIntrinsicContentSize];
+#if !TARGET_OS_OSX // [macOS]
+  [self.superview setNeedsLayout];
+#else // [macOS
+	[self.superview setNeedsLayout:YES];
+#endif // macOS]
+
   // Don't notify the delegate if the content remains invisible or its size has not changed
   if (bothSizesHaveAZeroDimension || sizesAreEqual) {
     return;
   }
 
   [self invalidateIntrinsicContentSize];
-  [self.superview setNeedsLayout];
+  #if !TARGET_OS_OSX // [macOS]
+	[self.superview setNeedsLayout];
+  #else // [macOS
+	  [self.superview setNeedsLayout:YES];
+  #endif // macOS]
 
   [_delegate rootViewDidChangeIntrinsicSize:self];
 }
@@ -380,9 +414,13 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
   [self showLoadingView];
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection
 {
   [super traitCollectionDidChange:previousTraitCollection];
+  if (RCTSharedApplication().applicationState == UIApplicationStateBackground) {
+    return;
+  }
 
   [[NSNotificationCenter defaultCenter]
       postNotificationName:RCTUserInterfaceStyleDidChangeNotification
@@ -391,12 +429,41 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithCoder : (NSCoder *)aDecoder)
                     RCTUserInterfaceStyleDidChangeNotificationTraitCollectionKey : self.traitCollection,
                   }];
 }
+#else // [macOS
+- (void)viewDidChangeEffectiveAppearance
+{
+  [super viewDidChangeEffectiveAppearance];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:RCTUserInterfaceStyleDidChangeNotification
+                    object:self
+                  userInfo:@{
+                    RCTUserInterfaceStyleDidChangeNotificationAppearanceKey : self.effectiveAppearance,
+                  }];
+}
+#endif // macOS]
+
+
+#if TARGET_OS_OSX // [macOS
+- (NSMenu *)menuForEvent:(NSEvent *)event
+{
+  NSMenu *menu = nil;
+#if __has_include("RCTDevMenu.h") && RCT_DEV
+  menu = [[_bridge devMenu] menu];
+#endif
+  if (menu == nil) {
+    menu = [super menuForEvent:event];
+  }
+  if (menu) {
+    [[_contentView touchHandler] willShowMenuWithEvent:event];
+  }
+  return menu;
+}
+#endif // macOS]
 
 - (void)dealloc
 {
   [_contentView invalidate];
 }
-
 @end
 
 @implementation RCTRootView (Deprecated)

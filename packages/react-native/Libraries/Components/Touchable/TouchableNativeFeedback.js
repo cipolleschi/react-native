@@ -78,6 +78,18 @@ type Props = $ReadOnly<{|
    */
   nextFocusUp?: ?number,
 
+  /*
+   * Array of keys to receive key down events for
+   * For arrow keys, add "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+   */
+  validKeysDown?: ?Array<string>,
+
+  /*
+   * Array of keys to receive key up events for
+   * For arrow keys, add "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+   */
+  validKeysUp?: ?Array<string>,
+
   /**
    * Set to true to add the ripple effect to the foreground of the view, instead
    * of the background. This is useful if one of your child views has a
@@ -156,7 +168,7 @@ class TouchableNativeFeedback extends React.Component<Props, State> {
    * Whether `useForeground` is supported.
    */
   static canUseNativeForeground: () => boolean = () =>
-    Platform.OS === 'android' && Platform.Version >= 23;
+    Platform.OS === 'android';
 
   state: State = {
     pressability: new Pressability(this._createPressabilityConfig()),
@@ -330,6 +342,8 @@ class TouchableNativeFeedback extends React.Component<Props, State> {
         nextFocusUp: this.props.nextFocusUp,
         onLayout: this.props.onLayout,
         testID: this.props.testID,
+        validKeysDown: this.props.validKeysDown,
+        validKeysUp: this.props.validKeysUp,
       },
       ...children,
     );

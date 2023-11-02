@@ -22,6 +22,7 @@ import com.facebook.react.utils.JdkConfiguratorUtils.configureJavaToolChains
 import com.facebook.react.utils.JsonUtils
 import com.facebook.react.utils.NdkConfiguratorUtils.configureReactNativeNdk
 import com.facebook.react.utils.ProjectUtils.needsCodegenFromPackageJson
+import com.facebook.react.utils.ProjectUtils.shouldWarnIfNewArchFlagIsSetInPrealpha
 import com.facebook.react.utils.findPackageJsonFile
 import java.io.File
 import kotlin.system.exitProcess
@@ -36,6 +37,7 @@ class ReactPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     checkJvmVersion(project)
     val extension = project.extensions.create("react", ReactExtension::class.java, project)
+    checkIfNewArchFlagIsSet(project, extension)
 
     // We register a private extension on the rootProject so that project wide configs
     // like codegen config can be propagated from app project to libraries.
@@ -64,7 +66,7 @@ class ReactPlugin : Plugin<Project> {
       }
 
       configureReactNativeNdk(project, extension)
-      configureBuildConfigFields(project)
+      configureBuildConfigFields(project, extension)
       configureDevPorts(project)
       configureBackwardCompatibilityReactMap(project)
 
@@ -104,6 +106,23 @@ class ReactPlugin : Plugin<Project> {
     }
   }
 
+  private fun checkIfNewArchFlagIsSet(project: Project, extension: ReactExtension) {
+    if (project.shouldWarnIfNewArchFlagIsSetInPrealpha(extension)) {
+      project.logger.warn(
+          """
+
+      ********************************************************************************
+
+      WARNING: This version of React Native is ignoring the `newArchEnabled` flag you set. Please set it to true or remove it to suppress this warning.
+
+
+      ********************************************************************************
+
+      """
+              .trimIndent())
+    }
+  }
+
   /** This function sets up `react-native-codegen` in our Gradle plugin. */
   @Suppress("UnstableApiUsage")
   private fun configureCodegen(
@@ -137,7 +156,7 @@ class ReactPlugin : Plugin<Project> {
               // the `jsRootDir` @Input property of this task & the onlyIf. Therefore, the
               // parsePackageJson should be invoked inside this lambda.
               val packageJson = findPackageJsonFile(project, rootExtension.root)
-              val parsedPackageJson = packageJson?.let { JsonUtils.fromCodegenJson(it) }
+              val parsedPackageJson = packageJson?.let { JsonUtils.fromPackageJson(it) }
 
               val jsSrcsDirInPackageJson = parsedPackageJson?.codegenConfig?.jsSrcsDir
               if (jsSrcsDirInPackageJson != null) {

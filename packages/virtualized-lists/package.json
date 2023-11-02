@@ -1,12 +1,17 @@
 {
-  "name": "@react-native/virtualized-lists",
+  "name": "@react-native-mac/virtualized-lists",
   "version": "0.73.0",
-  "description": "Virtualized lists for React Native.",
+  "description": "Virtualized lists for React Native macOS.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/facebook/react-native.git",
+    "url": "git@github.com:microsoft/react-native-macos.git",
     "directory": "packages/virtualized-lists"
+  },
+  "scripts": {
+    "change": "beachball change",
+    "check": "beachball check",
+    "beachball:publish": "beachball publish"
   },
   "homepage": "https://github.com/facebook/react-native/tree/HEAD/packages/virtualized-lists#readme",
   "keywords": ["lists", "virtualized-lists", "section-lists", "react-native"],
@@ -19,9 +24,13 @@
     "nullthrows": "^1.1.1"
   },
   "devDependencies": {
+    "beachball": "^2.30.1",
     "react-test-renderer": "18.2.0"
   },
   "peerDependencies": {
     "react-native": "*"
+  },
+  "beachball": {
+    "shouldPublish": true
   }
 }

@@ -17,7 +17,7 @@
 RCT_MOCK_REF(RCTView, RCTContentInsets);
 
 UIEdgeInsets gContentInsets;
-static UIEdgeInsets RCTContentInsetsMock(UIView *view)
+static UIEdgeInsets RCTContentInsetsMock(RCTUIView *view) // [macOS]
 {
   return gContentInsets;
 }
@@ -27,6 +27,7 @@ static UIEdgeInsets RCTContentInsetsMock(UIView *view)
 
 @implementation RCTViewTests
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)testAutoAdjustInsetsUpdateOffsetNo
 {
   RCT_MOCK_SET(RCTView, RCTContentInsets, RCTContentInsetsMock);
@@ -34,7 +35,7 @@ static UIEdgeInsets RCTContentInsetsMock(UIView *view)
   RCTScrollView *parentView = OCMClassMock([RCTScrollView class]);
   OCMStub([parentView contentInset]).andReturn(UIEdgeInsetsMake(1, 1, 1, 1));
   OCMStub([parentView automaticallyAdjustContentInsets]).andReturn(YES);
-  UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
+  RCTUIScrollView *scrollView = [[RCTUIScrollView alloc] initWithFrame:CGRectZero]; // [macOS]
 
   gContentInsets = UIEdgeInsetsMake(1, 2, 3, 4);
   [RCTView autoAdjustInsetsForView:parentView withScrollView:scrollView updateOffset:NO];
@@ -44,5 +45,6 @@ static UIEdgeInsets RCTContentInsetsMock(UIView *view)
 
   RCT_MOCK_RESET(RCTView, RCTContentInsets);
 }
+#endif // [macOS]
 
 @end

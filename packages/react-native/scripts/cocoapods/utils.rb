@@ -16,6 +16,9 @@ class ReactNativePodsUtils
         end
     end
 
+    # deprecated. These checks are duplicated in the react_native_pods function
+    # and we don't really need them. Removing this function will make it easy to
+    # move forward.
     def self.get_default_flags
         flags = {
             :fabric_enabled => false,
@@ -58,15 +61,13 @@ class ReactNativePodsUtils
         end
     end
 
-    def self.exclude_i386_architecture_while_using_hermes(installer)
+    def self.set_use_hermes_build_setting(installer, hermes_enabled)
+        Pod::UI.puts("Setting USE_HERMES build settings")
         projects = self.extract_projects(installer)
-
-        # Hermes does not support `i386` architecture
-        excluded_archs_default = self.has_pod(installer, 'hermes-engine') ? "i386" : ""
 
         projects.each do |project|
             project.build_configurations.each do |config|
-                config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = excluded_archs_default
+                config.build_settings["USE_HERMES"] = hermes_enabled
             end
 
             project.save()
@@ -126,16 +127,25 @@ class ReactNativePodsUtils
         end
     end
 
-    def self.apply_xcode_15_patch(installer)
-        installer.target_installation_results.pod_target_installation_results
-            .each do |pod_name, target_installation_result|
-                target_installation_result.native_target.build_configurations.each do |config|
-                    # unary_function and binary_function are no longer provided in C++17 and newer standard modes as part of Xcode 15. They can be re-enabled with setting _LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION
-                    # Ref: https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Deprecations
-                    config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= '$(inherited) '
-                    config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '"_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION" '
+    def self.apply_xcode_15_patch(installer, xcodebuild_manager: Xcodebuild)
+        projects = self.extract_projects(installer)
+
+        other_ld_flags_key = 'OTHER_LDFLAGS'
+        xcode15_compatibility_flags = '-Wl -ld_classic '
+
+        projects.each do |project|
+            project.build_configurations.each do |config|
+                # fix for weak linking
+                self.safe_init(config, other_ld_flags_key)
+                if self.is_using_xcode15_or_greater(:xcodebuild_manager => xcodebuild_manager)
+                    self.add_value_to_setting_if_missing(config, other_ld_flags_key, xcode15_compatibility_flags)
+                else
+                    self.remove_value_from_setting_if_present(config, other_ld_flags_key, xcode15_compatibility_flags)
+                end
             end
+            project.save()
         end
+
     end
 
     def self.apply_flags_for_fabric(installer, fabric_enabled: false)
@@ -229,12 +239,12 @@ class ReactNativePodsUtils
 
                 header_search_paths = config.build_settings["HEADER_SEARCH_PATHS"] ||= "$(inherited)"
 
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers")
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core")
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios")
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx")
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple/React_NativeModulesApple.framework/Headers")
-                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples-macOS/ReactCommon_Samples.framework/Headers")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-macOS/ReactCommon.framework/Headers/react/nativemodule/core")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-Samples-macOS/ReactCommon_Samples.framework/Headers/platform/ios")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric-macOS/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-NativeModulesApple-macOS/React_NativeModulesApple.framework/Headers")
+                header_search_paths = self.add_search_path_if_not_included(header_search_paths, "${PODS_CONFIGURATION_BUILD_DIR}/React-graphics-macOS/React_graphics.framework/Headers/react/renderer/graphics/platform/ios")
 
                 config.build_settings["HEADER_SEARCH_PATHS"] = header_search_paths
             end
@@ -255,6 +265,38 @@ class ReactNativePodsUtils
         end
     end
 
+    def self.updateOSDeploymentTarget(installer)
+        pod_to_update = Set.new([
+            "boost",
+            "CocoaAsyncSocket",
+            "Flipper",
+            "Flipper-DoubleConversion",
+            "Flipper-Fmt",
+            "Flipper-Boost-iOSX",
+            "Flipper-Folly",
+            "Flipper-Glog",
+            "Flipper-PeerTalk",
+            "FlipperKit",
+            "fmt",
+            "libevent",
+            "OpenSSL-Universal",
+            "RCT-Folly",
+            "SocketRocket",
+            "YogaKit"
+        ])
+
+        installer.target_installation_results.pod_target_installation_results
+            .each do |pod_name, target_installation_result|
+                unless pod_to_update.include?(pod_name)
+                    next
+                end
+                target_installation_result.native_target.build_configurations.each do |config|
+                    config.build_settings["IPHONEOS_DEPLOYMENT_TARGET"] = Helpers::Constants.min_ios_version_supported
+                    config.build_settings["MACOSX_DEPLOYMENT_TARGET"] = Helpers::Constants.min_ios_version_supported # [macOS]
+                end
+            end
+    end
+
     # ========= #
     # Utilities #
     # ========= #
@@ -264,6 +306,55 @@ class ReactNativePodsUtils
             .map{ |t| t.user_project }
             .uniq{ |p| p.path }
             .push(installer.pods_project)
+    end
+
+    def self.safe_init(config, setting_name)
+        old_config = config.build_settings[setting_name]
+        if old_config == nil
+            config.build_settings[setting_name] ||= '$(inherited) '
+        end
+    end
+
+    def self.add_value_to_setting_if_missing(config, setting_name, value)
+        old_config = config.build_settings[setting_name]
+        if old_config.is_a?(Array)
+            old_config = old_config.join(" ")
+        end
+
+        trimmed_value = value.strip()
+        if !old_config.include?(trimmed_value)
+            config.build_settings[setting_name] = "#{old_config.strip()} #{trimmed_value}".strip()
+        end
+    end
+
+    def self.remove_value_from_setting_if_present(config, setting_name, value)
+        old_config = config.build_settings[setting_name]
+        if old_config.is_a?(Array)
+            old_config = old_config.join(" ")
+        end
+
+        trimmed_value = value.strip()
+        if old_config.include?(trimmed_value)
+            new_config = old_config.gsub(trimmed_value,  "")
+            config.build_settings[setting_name] = new_config.strip()
+        end
+    end
+
+    def self.is_using_xcode15_or_greater(xcodebuild_manager: Xcodebuild)
+        xcodebuild_version = xcodebuild_manager.version
+
+        # The output of xcodebuild -version is something like
+        # Xcode 15.0
+        # or
+        # Xcode 14.3.1
+        # We want to capture the version digits
+        regex = /(\d+)\.(\d+)(?:\.(\d+))?/
+        if match_data = xcodebuild_version.match(regex)
+            major = match_data[1].to_i
+            return major >= 15
+        end
+
+        return false
     end
 
     def self.add_compiler_flag_to_project(installer, flag, configuration: nil)
@@ -367,38 +458,39 @@ class ReactNativePodsUtils
         ReactNativePodsUtils.update_header_paths_if_depends_on(target_installation_result, "RCT-Folly", [
             "\"$(PODS_ROOT)/RCT-Folly\"",
             "\"$(PODS_ROOT)/DoubleConversion\"",
+            "\"$(PODS_ROOT)/fmt/include\"",
             "\"$(PODS_ROOT)/boost\""
         ])
     end
 
     def self.set_codegen_search_paths(target_installation_result)
         ReactNativePodsUtils.update_header_paths_if_depends_on(target_installation_result, "React-Codegen", [
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen/React_Codegen.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Codegen-macOS/React_Codegen.framework/Headers\"",
         ])
     end
 
     def self.set_reactcommon_searchpaths(target_installation_result)
         ReactNativePodsUtils.update_header_paths_if_depends_on(target_installation_result, "ReactCommon", [
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-macOS/ReactCommon.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/ReactCommon-macOS/ReactCommon.framework/Headers/react/nativemodule/core\"",
         ])
 
     end
 
     def self.set_rctfabric_search_paths(target_installation_result)
         ReactNativePodsUtils.update_header_paths_if_depends_on(target_installation_result, "React-RCTFabric", [
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-RCTFabric/RCTFabric.framework/Headers\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-FabricImage/React_FabricImage.framework/Headers\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Graphics/React_graphics.framework/Headers\"",
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-RCTFabric-macOS/RCTFabric.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric-macOS/React_Fabric.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric-macOS/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-FabricImage-macOS/React_FabricImage.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Graphics-macOS/React_graphics.framework/Headers\"",
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Graphics-macOS/React_graphics.framework/Headers/react/renderer/graphics/platform/ios\"",
         ])
     end
 
     def self.set_imagemanager_search_path(target_installation_result)
         ReactNativePodsUtils.update_header_paths_if_depends_on(target_installation_result, "React-ImageManager", [
-            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric/React_Fabric.framework/Headers/react/renderer/imagemanager/platform/ios\""
+            "\"${PODS_CONFIGURATION_BUILD_DIR}/React-Fabric-macOS/React_Fabric.framework/Headers/react/renderer/imagemanager/platform/ios\""
         ])
     end
 

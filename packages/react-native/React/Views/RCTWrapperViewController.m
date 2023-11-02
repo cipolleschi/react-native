@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#if !TARGET_OS_OSX // [macOS]
 #import "RCTWrapperViewController.h"
 
 #import <UIKit/UIScrollView.h>
@@ -29,7 +30,6 @@
 
   if ((self = [super initWithNibName:nil bundle:nil])) {
     _contentView = contentView;
-    self.automaticallyAdjustsScrollViewInsets = NO;
   }
   return self;
 }
@@ -81,3 +81,4 @@ static BOOL RCTFindScrollViewAndRefreshContentInsetInView(UIView *view)
 }
 
 @end
+#endif

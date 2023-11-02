@@ -7,6 +7,7 @@
 
 #import "RCTAppState.h"
 
+#import <React/RCTUIKit.h> // [macOS]
 #import <FBReactNativeSpec/FBReactNativeSpec.h>
 #import <React/RCTAssert.h>
 #import <React/RCTBridge.h>
@@ -17,6 +18,7 @@
 
 static NSString *RCTCurrentAppState()
 {
+#if !TARGET_OS_OSX // [macOS]
   static NSDictionary *states;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
@@ -26,12 +28,21 @@ static NSString *RCTCurrentAppState()
       @(UIApplicationStateInactive) : @"inactive"
     };
   });
-
   if (RCTRunningInAppExtension()) {
     return @"extension";
   }
-
   return states[@(RCTSharedApplication().applicationState)] ?: @"unknown";
+#else // [macOS
+  
+  if (RCTSharedApplication().isActive) {
+    return @"active";
+  } else if (RCTSharedApplication().isHidden) {
+    return @"background";
+  }
+  return @"unknown";
+  
+#endif // macOS]
+  
 }
 
 @interface RCTAppState () <NativeAppStateSpec>
@@ -92,10 +103,12 @@ RCT_EXPORT_MODULE()
                                                object:nil];
   }
 
+#if !TARGET_OS_OSX // [macOS]
   [[NSNotificationCenter defaultCenter] addObserver:self
                                            selector:@selector(handleMemoryWarning)
                                                name:UIApplicationDidReceiveMemoryWarningNotification
                                              object:nil];
+#endif // [macOS]
 }
 
 - (void)stopObserving

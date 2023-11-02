@@ -48,7 +48,9 @@ function ContentPress() {
             setTimesPressed(current => current + 1);
           }}>
           {({pressed}) => (
-            <Text style={styles.text}>{pressed ? 'Pressed!' : 'Press Me'}</Text>
+            <Text testID="one_press_me_button" style={styles.text}>
+              {pressed ? 'Pressed!' : 'Press Me'}
+            </Text>
           )}
         </Pressable>
       </View>
@@ -118,6 +120,12 @@ function PressableFeedbackEvents() {
           testID="pressable_feedback_events_button"
           accessibilityLabel="pressable feedback events"
           accessibilityRole="button"
+          // [macOS
+          onHoverIn={() => appendEvent('hoverIn')}
+          onHoverOut={() => appendEvent('hoverOut')}
+          onFocus={() => appendEvent('focus')}
+          onBlur={() => appendEvent('blur')}
+          // macOS]
           onPress={() => appendEvent('press')}
           onPressIn={() => appendEvent('pressIn')}
           onPressOut={() => appendEvent('pressOut')}

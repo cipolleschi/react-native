@@ -14,6 +14,7 @@ const React = require('react');
 
 const {
   Platform,
+  PlatformColor,
   SectionList,
   StyleSheet,
   Text,
@@ -39,6 +40,7 @@ const ExampleModuleRow = ({
   const onAndroid = !platform || platform === 'android';
   const rightAddOn = (
     <TouchableHighlight
+      focusable={false} // [macOS]
       style={styles.imageViewStyle}
       onPress={() =>
         toggleBookmark({
@@ -153,6 +155,8 @@ const RNTesterModuleList: React$AbstractComponent<any, void> = React.memo(
               extraData={filteredSections}
               renderItem={renderListItem}
               keyboardShouldPersistTaps="handled"
+              focusable={true} // [macOS]
+              enableSelectionOnKeyPress={true} // [macOS]
               automaticallyAdjustContentInsets={false}
               keyboardDismissMode="on-drag"
               renderSectionHeader={renderSectionHeader}
@@ -171,6 +175,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeader: {
+    ...Platform.select({
+      // [macOS
+      macos: {
+        backgroundColor: PlatformColor(
+          'unemphasizedSelectedContentBackgroundColor',
+        ),
+
+        color: PlatformColor('headerTextColor'),
+      },
+      ios: {
+        backgroundColor: PlatformColor('systemGroupedBackgroundColor'),
+        color: PlatformColor('secondaryLabelColor'),
+      },
+      default: {
+        // macOS]
+        backgroundColor: '#eeeeee',
+        color: 'black',
+      }, // [macOS
+    }), // macOS]
     padding: 5,
     fontWeight: '500',
     fontSize: 11,
@@ -179,7 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 15,
     paddingVertical: 12,
-    marginVertical: Platform.select({ios: 4, android: 8}),
+    marginVertical: Platform.select({ios: 4, android: 8, macos: 4}), // [macOS]
     marginHorizontal: 15,
     overflow: 'hidden',
     elevation: 5,

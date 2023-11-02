@@ -33,6 +33,56 @@ static BOOL RCTShouldReloadImageForSizeChange(CGSize currentSize, CGSize idealSi
       heightMultiplier > upscaleThreshold || heightMultiplier < downscaleThreshold;
 }
 
+#if TARGET_OS_OSX // [macOS
+/**
+ * Implements macOS equivalent behavior of UIViewContentModeScaleAspectFill.
+ * Used for RCTResizeModeCover support.
+ */
+static NSImage *RCTFillImagePreservingAspectRatio(NSImage *originalImage, NSSize targetSize, CGFloat windowScale)
+{
+  RCTAssertParam(originalImage);
+  if (!originalImage) {
+    return nil;
+  }
+
+  NSSize originalImageSize = originalImage.size;
+  if (NSEqualSizes(originalImageSize, NSZeroSize) ||
+      NSEqualSizes(originalImageSize, targetSize) ||
+      [[originalImage representations] count] == 0) {
+    return originalImage;
+  }
+
+  CGFloat scaleX = targetSize.width / originalImageSize.width;
+  CGFloat scaleY = targetSize.height / originalImageSize.height;
+  CGFloat scale = 1.0;
+
+  if (scaleX < scaleY) {
+    // clamped width
+    scale = scaleY;
+  }
+  else {
+    // clamped height
+    scale = scaleX;
+  }
+
+  NSSize newSize = NSMakeSize(RCTRoundPixelValue(originalImageSize.width * scale, windowScale),
+                              RCTRoundPixelValue(originalImageSize.height * scale, windowScale));
+  NSImage *newImage = [[NSImage alloc] initWithSize:newSize];
+
+  for (NSImageRep *imageRep in [originalImage representations]) {
+    NSImageRep *newImageRep = [imageRep copy];
+    NSSize newImageRepSize = NSMakeSize(RCTRoundPixelValue(imageRep.size.width * scale, windowScale),
+                                        RCTRoundPixelValue(imageRep.size.height * scale, windowScale));
+
+    newImageRep.size = newImageRepSize;
+
+    [newImage addRepresentation:newImageRep];
+  }
+
+  return newImage;
+}
+#endif // macOS]
+
 /**
  * See RCTConvert (ImageSource). We want to send down the source as a similar
  * JSON parameter.
@@ -77,6 +127,8 @@ static NSDictionary *onLoadParamsForSource(RCTImageSource *source)
   // Whether the latest change of props requires the image to be reloaded
   BOOL _needsReload;
 
+  UIImage *_image; // [macOS]
+
   RCTUIImageViewAnimated *_imageView;
 
   RCTImageURLLoaderRequest *_loaderRequest;
@@ -84,12 +136,20 @@ static NSDictionary *onLoadParamsForSource(RCTImageSource *source)
 
 - (instancetype)initWithBridge:(RCTBridge *)bridge
 {
+#if !TARGET_OS_OSX // [macOS]
   if ((self = [super initWithFrame:CGRectZero])) {
+#else // [macOS
+  if ((self = [super initWithFrame:NSZeroRect])) {
+#endif // macOS]
     _bridge = bridge;
+#if TARGET_OS_OSX // [macOS
+    self.wantsLayer = YES;
+#endif // macOS]
     _imageView = [RCTUIImageViewAnimated new];
     _imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [self addSubview:_imageView];
 
+#if !TARGET_OS_OSX // [macOS]
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center addObserver:self
                selector:@selector(clearImageIfDetached)
@@ -104,6 +164,7 @@ static NSDictionary *onLoadParamsForSource(RCTImageSource *source)
 
                    name:UISceneDidEnterBackgroundNotification
                  object:nil];
+#endif // [macOS]
   }
   return self;
 }
@@ -122,16 +183,38 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
   }
 
   // Apply rendering mode
+#if !TARGET_OS_OSX // [macOS]
   if (_renderingMode != image.renderingMode) {
     image = [image imageWithRenderingMode:_renderingMode];
   }
+#endif // [macOS]
 
   if (_resizeMode == RCTResizeModeRepeat) {
+#if !TARGET_OS_OSX // [macOS]
     image = [image resizableImageWithCapInsets:_capInsets resizingMode:UIImageResizingModeTile];
+#else // [macOS
+    image.capInsets = _capInsets;
+    image.resizingMode = NSImageResizingModeTile;
+  } else if (_resizeMode == RCTResizeModeCover) {
+    if (!NSEqualSizes(self.bounds.size, NSZeroSize)) {
+      image = RCTFillImagePreservingAspectRatio(image, self.bounds.size, self.window.backingScaleFactor ?: 1.0);
+    }
+#endif // macOS]
   } else if (!UIEdgeInsetsEqualToEdgeInsets(UIEdgeInsetsZero, _capInsets)) {
     // Applying capInsets of 0 will switch the "resizingMode" of the image to "tile" which is undesired
+#if !TARGET_OS_OSX // [macOS]
     image = [image resizableImageWithCapInsets:_capInsets resizingMode:UIImageResizingModeStretch];
+#else // [macOS
+    image.capInsets = _capInsets;
+    image.resizingMode = NSImageResizingModeStretch;
+#endif // macOS]
   }
+
+#if TARGET_OS_OSX // [macOS
+  if ((_renderingMode == UIImageRenderingModeAlwaysTemplate) != [image isTemplate]) {
+    [image setTemplate:(_renderingMode == UIImageRenderingModeAlwaysTemplate)];
+  }
+#endif // macOS]
 
   // Apply trilinear filtering to smooth out missized images
   _imageView.layer.minificationFilter = kCAFilterTrilinear;
@@ -144,13 +227,14 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
 {
   image = image ?: _defaultImage;
   if (image != self.image) {
+    _image = image; // [macOS]
     [self updateWithImage:image];
   }
 }
 
 - (UIImage *)image
 {
-  return _imageView.image;
+  return _image ?: _imageView.image; // [macOS]
 }
 
 - (void)setBlurRadius:(CGFloat)blurRadius
@@ -200,9 +284,21 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     if (_resizeMode == RCTResizeModeRepeat) {
       // Repeat resize mode is handled by the UIImage. Use scale to fill
       // so the repeated image fills the UIImageView.
+#if !TARGET_OS_OSX // [macOS]
       _imageView.contentMode = UIViewContentModeScaleToFill;
+#else // [macOS
+      _imageView.imageScaling = NSImageScaleAxesIndependently;
+#endif // macOS]
     } else {
+#if !TARGET_OS_OSX // [macOS]
       _imageView.contentMode = (UIViewContentMode)resizeMode;
+#else // [macOS
+      // This relies on having previously resampled the image to a size that exceeds the image view.
+      if (resizeMode == RCTResizeModeCover) {
+        resizeMode = RCTResizeModeCenter;
+      }
+      _imageView.imageScaling = (NSImageScaling)resizeMode;
+#endif // macOS]
     }
 
     if ([self shouldReloadImageSourceAfterResize]) {
@@ -237,6 +333,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
   }
 }
 
+#if !TARGET_OS_OSX // [macOS]
 - (void)clearImageIfDetached
 {
   if (!self.window) {
@@ -245,6 +342,7 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     _imageSource = nil;
   }
 }
+#endif // [macOS]
 
 - (BOOL)hasMultipleSources
 {
@@ -262,7 +360,11 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     return nil;
   }
 
+#if !TARGET_OS_OSX // [macOS]
   const CGFloat scale = RCTScreenScale();
+#else // [macOS
+  const CGFloat scale = self.window != nil ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+#endif // macOS]
   const CGFloat targetImagePixels = size.width * size.height * scale * scale;
 
   RCTImageSource *bestSource = nil;
@@ -324,7 +426,11 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     };
 
     CGSize imageSize = self.bounds.size;
+#if !TARGET_OS_OSX // [macOS]
     CGFloat imageScale = RCTScreenScale();
+#else // [macOS
+    CGFloat imageScale = self.window != nil ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+#endif // macOS]
     if (!UIEdgeInsetsEqualToEdgeInsets(_capInsets, UIEdgeInsetsZero)) {
       // Don't resize images that use capInsets
       imageSize = CGSizeZero;
@@ -446,13 +552,31 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     [self reloadImage];
   } else if ([self shouldReloadImageSourceAfterResize]) {
     CGSize imageSize = self.image.size;
-    CGFloat imageScale = self.image.scale;
-    CGSize idealSize =
-        RCTTargetSize(imageSize, imageScale, frame.size, RCTScreenScale(), (RCTResizeMode)self.contentMode, YES);
+    CGFloat imageScale = UIImageGetScale(self.image); // [macOS]
+#if !TARGET_OS_OSX // [macOS]
+    CGFloat windowScale = RCTScreenScale();
+    RCTResizeMode resizeMode = (RCTResizeMode)_imageView.contentMode; // [macOS]
+#else // [macOS
+    CGFloat windowScale = self.window != nil ? self.window.backingScaleFactor : [NSScreen mainScreen].backingScaleFactor;
+    RCTResizeMode resizeMode = self.resizeMode;
 
+    // self.contentMode on iOS is translated to RCTResizeModeRepeat in -setResizeMode:
+    if (resizeMode == RCTResizeModeRepeat) {
+      resizeMode = RCTResizeModeStretch;
+    }
+#endif // macOS]
+    CGSize idealSize = RCTTargetSize(imageSize, imageScale, frame.size, windowScale,
+                                       resizeMode, YES); // macOS]
     // Don't reload if the current image or target image size is close enough
-    if (!RCTShouldReloadImageForSizeChange(imageSize, idealSize) ||
-        !RCTShouldReloadImageForSizeChange(_targetSize, idealSize)) {
+    if ((!RCTShouldReloadImageForSizeChange(imageSize, idealSize) ||
+         !RCTShouldReloadImageForSizeChange(_targetSize, idealSize)) // [macOS
+#if TARGET_OS_OSX
+         // Since macOS doen't support UIViewContentModeScaleAspectFill, we have to manually resample the image
+         // If we're in cover mode we need to ensure that the image is re-sampled to the correct size when the container size (shrinking 
+         // being the most obvious case) otherwise we will end up in a state an image will not properly scale inside its container
+         && (resizeMode != RCTResizeModeCover || (imageSize.width == idealSize.width && imageSize.height == idealSize.height))
+#endif
+         ) { // macOS]
       return;
     }
 
@@ -480,6 +604,9 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
   }
 }
 
+#if TARGET_OS_OSX // [macOS
+#define didMoveToWindow viewDidMoveToWindow
+#endif
 - (void)didMoveToWindow
 {
   [super didMoveToWindow];
@@ -495,6 +622,28 @@ RCT_NOT_IMPLEMENTED(-(instancetype)initWithFrame : (CGRect)frame)
     [self reloadImage];
   }
 }
+    
+#if TARGET_OS_OSX // [macOS
+- (void)viewDidChangeBackingProperties
+{
+  [self reloadImage];
+}
+  
+- (RCTPlatformView *)reactAccessibilityElement
+{
+  return _imageView;
+}
+
+- (NSColor *)tintColor
+{
+  return _imageView.contentTintColor;
+}
+
+- (void)setTintColor:(NSColor *)tintColor
+{
+  _imageView.contentTintColor = tintColor;
+}
+#endif // macOS]
 
 - (void)dealloc
 {

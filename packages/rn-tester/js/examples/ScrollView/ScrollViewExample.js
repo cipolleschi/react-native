@@ -491,6 +491,87 @@ if (Platform.OS === 'ios') {
 }
 exports.examples = examples;
 
+// [macOS
+if (Platform.OS === 'macos') {
+  examples.push(
+    {
+      title: '<ScrollView> (inverted = true/false)\n',
+      description:
+        "You can display <ScrollView>'s child components in inverted order",
+      render: function (): React.Node {
+        return <InvertedContentExample />;
+      },
+    },
+    {
+      title: '<ScrollView> (hasOverlayStyleIndicator = true/false)\n',
+      description:
+        "You can display <ScrollView>'s indicator using overlay style",
+      render: function (): React.Node {
+        return <ScrollIndicatorOverlayExample />;
+      },
+    },
+    {
+      title: '<ScrollView> (centerContent = true)\n',
+      description:
+        'ScrollView puts its content in the center if the content is smaller than scroll view',
+      render: function (): React.Node {
+        return <CenterContentList />;
+      },
+    },
+  );
+}
+
+const InvertedContentExample = () => {
+  const [inverted, setInverted] = useState(true);
+  const [items, setItems] = useState(ITEMS);
+  return (
+    <>
+      <ScrollView
+        style={[styles.scrollView, {height: 200}]}
+        inverted={inverted}>
+        {items.map(createItemRow)}
+      </ScrollView>
+      <Text style={{paddingTop: 10, paddingBottom: 10}}>
+        Same example as above, but with the opposite inverted option
+      </Text>
+      <ScrollView
+        style={[styles.scrollView, {height: 200}]}
+        inverted={!inverted}>
+        {items.map(createItemRow)}
+      </ScrollView>
+      <Button
+        label={'toggle inverted'}
+        onPress={() => {
+          setInverted(!inverted);
+          setItems([...Array(14)].map((_, i) => `Item ${i}`));
+        }}
+      />
+    </>
+  );
+};
+
+const ScrollIndicatorOverlayExample = () => {
+  const [hasOverlayStyleIndicator, setHasOverlayStyleIndicator] =
+    useState(true);
+  return (
+    <View>
+      <ScrollView
+        style={[styles.scrollView, {height: 200}]}
+        hasOverlayStyleIndicator={hasOverlayStyleIndicator}
+        nestedScrollEnabled>
+        {ITEMS.map(createItemRow)}
+      </ScrollView>
+      <Button
+        label={
+          'showsOverlayStyleIndicator: ' + hasOverlayStyleIndicator.toString()
+        }
+        onPress={() => setHasOverlayStyleIndicator(!hasOverlayStyleIndicator)}
+      />
+    </View>
+  );
+};
+// macOS]
+
 const AndroidScrollBarOptions = () => {
   const [persistentScrollBar, setPersistentScrollBar] = useState(false);
   return (

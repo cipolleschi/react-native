@@ -5,11 +5,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponent.h>
 
-@interface RCTSwitch : UISwitch
+@interface RCTSwitch : RCTUISwitch
 
 @property (nonatomic, assign) BOOL wasOn;
 @property (nonatomic, copy) RCTBubblingEventBlock onChange;

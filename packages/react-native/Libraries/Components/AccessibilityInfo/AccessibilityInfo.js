@@ -17,7 +17,7 @@ import {sendAccessibilityEvent} from '../../ReactNative/RendererProxy';
 import Platform from '../../Utilities/Platform';
 import legacySendAccessibilityEvent from './legacySendAccessibilityEvent';
 import NativeAccessibilityInfoAndroid from './NativeAccessibilityInfo';
-import NativeAccessibilityManagerIOS from './NativeAccessibilityManager';
+import NativeAccessibilityManagerApple from './NativeAccessibilityManager'; // [macOS]
 
 // Events that are only supported on Android.
 type AccessibilityEventDefinitionsAndroid = {
@@ -33,9 +33,17 @@ type AccessibilityEventDefinitionsIOS = {
   reduceTransparencyChanged: [boolean],
 };
 
+// [macOS
+// Events that are only supported on macOS.
+type AccessibilityEventDefinitionsMacOS = {
+  highContrastChanged: [boolean], // [macOS] highContrastChanged is used on macOS
+};
+// macOS]
+
 type AccessibilityEventDefinitions = {
   ...AccessibilityEventDefinitionsAndroid,
   ...AccessibilityEventDefinitionsIOS,
+  ...AccessibilityEventDefinitionsMacOS, // [macOS]
   change: [boolean], // screenReaderChanged
   reduceMotionChanged: [boolean],
   screenReaderChanged: [boolean],
@@ -59,6 +67,7 @@ const EventNames: Map<
       ['boldTextChanged', 'boldTextChanged'],
       ['change', 'screenReaderChanged'],
       ['grayscaleChanged', 'grayscaleChanged'],
+      ['highContrastChanged', 'highContrastChanged'], // [macOS]
       ['invertColorsChanged', 'invertColorsChanged'],
       ['reduceMotionChanged', 'reduceMotionChanged'],
       ['reduceTransparencyChanged', 'reduceTransparencyChanged'],
@@ -84,12 +93,11 @@ const AccessibilityInfo = {
    * See https://reactnative.dev/docs/accessibilityinfo#isBoldTextEnabled
    */
   isBoldTextEnabled(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      return Promise.resolve(false);
-    } else {
+    // [macOS rework logic to return Promise.resolve(false) on macOS
+    if (Platform.OS === 'ios') {
       return new Promise((resolve, reject) => {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentBoldTextState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentBoldTextState(
             resolve,
             reject,
           );
@@ -97,7 +105,10 @@ const AccessibilityInfo = {
           reject(null);
         }
       });
+    } else {
+      return Promise.resolve(false);
     }
+    // macOS]
   },
 
   /**
@@ -109,12 +120,11 @@ const AccessibilityInfo = {
    * See https://reactnative.dev/docs/accessibilityinfo#isGrayscaleEnabled
    */
   isGrayscaleEnabled(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      return Promise.resolve(false);
-    } else {
+    // [macOS rework logic to return Promise.resolve(false) on macOS
+    if (Platform.OS === 'ios') {
       return new Promise((resolve, reject) => {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentGrayscaleState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentGrayscaleState(
             resolve,
             reject,
           );
@@ -122,8 +132,33 @@ const AccessibilityInfo = {
           reject(null);
         }
       });
+    } else {
+      return Promise.resolve(false);
+    }
+    // macOS]
+  },
+
+  // [macOS
+  /**
+   * macOS only
+   */
+  isHighContrastEnabled: function (): Promise<boolean> {
+    if (Platform.OS === 'macos') {
+      return new Promise((resolve, reject) => {
+        if (NativeAccessibilityManagerApple) {
+          NativeAccessibilityManagerApple.getCurrentHighContrastState(
+            resolve,
+            reject,
+          );
+        } else {
+          reject(reject);
+        }
+      });
+    } else {
+      return Promise.resolve(false);
     }
   },
+  // macOS]
 
   /**
    * Query whether inverted colors are currently enabled.
@@ -134,12 +169,11 @@ const AccessibilityInfo = {
    * See https://reactnative.dev/docs/accessibilityinfo#isInvertColorsEnabled
    */
   isInvertColorsEnabled(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      return Promise.resolve(false);
-    } else {
+    // [macOS rework logic to return Promise.resolve(false) on macOS
+    if (Platform.OS === 'ios') {
       return new Promise((resolve, reject) => {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentInvertColorsState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentInvertColorsState(
             resolve,
             reject,
           );
@@ -147,7 +181,10 @@ const AccessibilityInfo = {
           reject(null);
         }
       });
+    } else {
+      return Promise.resolve(false);
     }
+    // macOS]
   },
 
   /**
@@ -167,8 +204,8 @@ const AccessibilityInfo = {
           reject(null);
         }
       } else {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentReduceMotionState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentReduceMotionState(
             resolve,
             reject,
           );
@@ -193,10 +230,11 @@ const AccessibilityInfo = {
         return Promise.resolve(false);
       } else {
         if (
-          NativeAccessibilityManagerIOS?.getCurrentPrefersCrossFadeTransitionsState !=
+          NativeAccessibilityManagerApple?.getCurrentPrefersCrossFadeTransitionsState != // [macOS]
           null
         ) {
-          NativeAccessibilityManagerIOS.getCurrentPrefersCrossFadeTransitionsState(
+          // [macOS]
+          NativeAccessibilityManagerApple.getCurrentPrefersCrossFadeTransitionsState(
             resolve,
             reject,
           );
@@ -216,12 +254,11 @@ const AccessibilityInfo = {
    * See https://reactnative.dev/docs/accessibilityinfo#isReduceTransparencyEnabled
    */
   isReduceTransparencyEnabled(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      return Promise.resolve(false);
-    } else {
+    // [macOS rework logic to return Promise.resolve(false) on macOS
+    if (Platform.OS === 'ios') {
       return new Promise((resolve, reject) => {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentReduceTransparencyState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentReduceTransparencyState(
             resolve,
             reject,
           );
@@ -229,7 +266,10 @@ const AccessibilityInfo = {
           reject(null);
         }
       });
+    } else {
+      return Promise.resolve(false);
     }
+    // macOS]
   },
 
   /**
@@ -249,8 +289,8 @@ const AccessibilityInfo = {
           reject(null);
         }
       } else {
-        if (NativeAccessibilityManagerIOS != null) {
-          NativeAccessibilityManagerIOS.getCurrentVoiceOverState(
+        if (NativeAccessibilityManagerApple != null) {
+          NativeAccessibilityManagerApple.getCurrentVoiceOverState(
             resolve,
             reject,
           );
@@ -367,7 +407,7 @@ const AccessibilityInfo = {
     if (Platform.OS === 'android') {
       NativeAccessibilityInfoAndroid?.announceForAccessibility(announcement);
     } else {
-      NativeAccessibilityManagerIOS?.announceForAccessibility(announcement);
+      NativeAccessibilityManagerApple?.announceForAccessibility(announcement); // [macOS]
     }
   },
 
@@ -384,14 +424,18 @@ const AccessibilityInfo = {
     if (Platform.OS === 'android') {
       NativeAccessibilityInfoAndroid?.announceForAccessibility(announcement);
     } else {
-      if (NativeAccessibilityManagerIOS?.announceForAccessibilityWithOptions) {
-        NativeAccessibilityManagerIOS?.announceForAccessibilityWithOptions(
+      // [macOS NativeAccessibilityManagerApple -> NativeAccessibilityManagerApple
+      if (
+        NativeAccessibilityManagerApple?.announceForAccessibilityWithOptions
+      ) {
+        NativeAccessibilityManagerApple?.announceForAccessibilityWithOptions(
           announcement,
           options,
         );
       } else {
-        NativeAccessibilityManagerIOS?.announceForAccessibility(announcement);
+        NativeAccessibilityManagerApple?.announceForAccessibility(announcement);
       }
+      // macOS]
     }
   },
 

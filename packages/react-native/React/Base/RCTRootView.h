@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTBridge.h>
 #import <React/RCTBridgeModule.h>
@@ -47,7 +47,7 @@ extern
  * like any ordinary UIView. You can have multiple RCTRootViews on screen at
  * once, all controlled by the same JavaScript application.
  */
-@interface RCTRootView : UIView
+@interface RCTRootView : RCTUIView // [macOS]
 
 /**
  * - Designated initializer -
@@ -76,19 +76,6 @@ extern
                        moduleName:(NSString *)moduleName
                 initialProperties:(nullable NSDictionary *)initialProperties
                     launchOptions:(nullable NSDictionary *)launchOptions;
-
-/**
- * This API allows RCTRootView users to know if the root view is backed by the bridge.
- */
-@property (nonatomic, readonly) BOOL hasBridge;
-
-/**
- * This API allows users of RCTRootView to access other NativeModules, without
- * directly accessing the bridge.
- */
-@property (nonatomic, strong, readonly) RCTModuleRegistry *moduleRegistry;
-
-@property (nonatomic, strong, readonly) id<RCTEventDispatcherProtocol> eventDispatcher;
 
 /**
  * The name of the JavaScript module to execute within the
@@ -134,21 +121,21 @@ extern
 @property (nonatomic, weak, nullable) UIViewController *reactViewController;
 
 /**
- * The root view casted as UIView. Used by splash screen libraries.
+ * The root view casted as RCTUIView. Used by splash screen libraries. // [macOS]
  */
-@property (nonatomic, strong, readonly) UIView *view;
+@property (nonatomic, strong, readonly) RCTUIView *view; // [macOS]
 
 /**
  * The React-managed contents view of the root view.
  */
-@property (nonatomic, strong, readonly) UIView *contentView;
+@property (nonatomic, strong, readonly) RCTUIView *contentView; // [macOS]
 
 /**
  * A view to display while the JavaScript is loading, so users aren't presented
  * with a blank screen. By default this is nil, but you can override it with
  * (for example) a UIActivityIndicatorView or a placeholder image.
  */
-@property (nonatomic, strong, nullable) UIView *loadingView;
+@property (nonatomic, strong, nullable) RCTUIView *loadingView; // [macOS]
 
 /**
  * When set, any touches on the RCTRootView that are not matched up to any of the child

@@ -84,6 +84,9 @@ type DataDetectorTypes =
   | 'link'
   | 'address'
   | 'calendarEvent'
+  | 'trackingNumber'
+  | 'flightNumber'
+  | 'lookupSuggestion'
   | 'none'
   | 'all';
 
@@ -319,6 +322,113 @@ export interface TextInputIOSProps {
    */
   smartInsertDelete?: boolean | undefined;
 }
+
+// [macOS
+export type SettingChangeEvent = NativeSyntheticEvent<{
+  enabled: boolean;
+}>;
+
+export type PasteEvent = NativeSyntheticEvent<{
+  dataTransfer: {
+    files: {
+      height: number;
+      size: number;
+      type: string;
+      uri: string;
+      width: number;
+    }[];
+    items: {
+      kind: string;
+      type: string;
+    }[];
+    types: string[];
+  };
+}>;
+
+export type SubmitKeyEvent = {
+  key: string;
+  altKey?: boolean | undefined;
+  ctrlKey?: boolean | undefined;
+  metaKey?: boolean | undefined;
+  shiftKey?: boolean | undefined;
+  functionKey?: boolean | undefined;
+};
+
+export type PasteType = 'fileUrl' | 'image' | 'string';
+export type PastedTypesType = PasteType | PasteType[];
+
+/**
+ * macOS Specific properties for TextInput
+ */
+export interface TextInputMacOSProps {
+  /**
+   * If `true`, clears the text field synchronously before `onSubmitEditing` is emitted.
+   */
+  clearTextOnSubmit?: boolean | undefined;
+
+  /**
+   * If `false`, disables grammar-check.
+   */
+  grammarCheck?: boolean | undefined;
+
+  /**
+   * If `true`, hide vertical scrollbar on the underlying multiline scrollview
+   * The default value is `false`.
+   */
+  hideVerticalScrollIndicator?: boolean | undefined;
+
+  /**
+   * Fired when a supported element is pasted
+   */
+  onPaste?: ((event: PasteEvent) => void) | undefined;
+
+  /**
+   * Callback that is called when the text input's autoCorrect setting changes.
+   * This will be called with
+   * `{ nativeEvent: { enabled } }`.
+   * Does only work with 'multiline={true}'.
+   */
+  onAutoCorrectChange?: ((e: SettingChangeEvent) => void) | undefined;
+
+  /**
+   * Callback that is called when the text input's spellCheck setting changes.
+   * This will be called with
+   * `{ nativeEvent: { enabled } }`.
+   * Does only work with 'multiline={true}'.
+   */
+  onSpellCheckChange?: ((e: SettingChangeEvent) => void) | undefined;
+
+  /**
+   * Callback that is called when the text input's grammarCheck setting changes.
+   * This will be called with
+   * `{ nativeEvent: { enabled } }`.
+   * Does only work with 'multiline={true}'.
+   */
+  onGrammarCheckChange?: ((e: SettingChangeEvent) => void) | undefined;
+
+  /**
+   * Enables Paste support for certain types of pasted types
+   *
+   * Possible values for `pastedTypes` are:
+   *
+   * - `'fileUrl'`
+   * - `'image'`
+   * - `'string'`
+   */
+  pastedTypes?: PastedTypesType | undefined;
+
+  /**
+   * Configures keys that can be used to submit editing for the TextInput. Defaults to 'Enter' key.
+   */
+  submitKeyEvents?: SubmitKeyEvent[] | undefined;
+
+  /**
+   * Specifies the tooltip.
+   */
+  tooltip?: string | undefined;
+}
+
+// macOS]
 
 /**
  * Android Specific properties for TextInput
@@ -739,6 +849,11 @@ export interface TextInputProps
     | undefined;
 
   /**
+   * Called when a single tap gesture is detected.
+   */
+  onPress?: ((e: NativeSyntheticEvent<NativeTouchEvent>) => void) | undefined;
+
+  /**
    * Callback that is called when a touch is engaged.
    */
   onPressIn?: ((e: NativeSyntheticEvent<NativeTouchEvent>) => void) | undefined;
@@ -813,6 +928,11 @@ export interface TextInputProps
    * The text color of the placeholder string
    */
   placeholderTextColor?: ColorValue | undefined;
+
+  /**
+   * If `true`, text is not editable. The default value is `false`.
+   */
+  readOnly?: boolean | undefined;
 
   /**
    * enum('default', 'go', 'google', 'join', 'next', 'route', 'search', 'send', 'yahoo', 'done', 'emergency-call')
@@ -944,4 +1064,9 @@ export class TextInput extends TextInputBase {
    * Removes all text from the input.
    */
   clear: () => void;
+
+  /**
+   * Sets the start and end positions of text selection.
+   */
+  setSelection: (start: number, end: number) => void;
 }

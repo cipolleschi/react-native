@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTComponentViewDescriptor.h>
 #import <React/RCTComponentViewProtocol.h>
@@ -52,7 +52,7 @@ void RCTInstallNativeComponentRegistryBinding(facebook::jsi::Runtime &runtime);
  * Registers component if there is a matching class. Returns true if it matching class is found or the component has
  * already been registered, false otherwise.
  */
-- (BOOL)registerComponentIfPossible:(std::string const &)componentName;
+- (BOOL)registerComponentIfPossible:(const std::string &)componentName;
 
 /**
  * Creates a component view with given component handle.

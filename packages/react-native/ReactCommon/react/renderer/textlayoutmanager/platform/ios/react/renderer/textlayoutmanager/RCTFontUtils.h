@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <react/renderer/textlayoutmanager/RCTFontProperties.h>
 
@@ -14,6 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Returns UIFont instance corresponded to given font properties.
  */
-UIFont *RCTFontWithFontProperties(RCTFontProperties fontProperties);
+UIFont* RCTFontWithFontProperties(RCTFontProperties fontProperties);
 
 NS_ASSUME_NONNULL_END

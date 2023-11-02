@@ -15,13 +15,13 @@ import type {
   RenderItemType,
   ViewabilityConfigCallbackPair,
   ViewToken,
-} from '@react-native/virtualized-lists';
+} from '@react-native-mac/virtualized-lists'; // [macOS]
 
 import {type ScrollResponderType} from '../Components/ScrollView/ScrollView';
 import {
   VirtualizedList,
   keyExtractor as defaultKeyExtractor,
-} from '@react-native/virtualized-lists';
+} from '@react-native-mac/virtualized-lists'; // [macOS]
 import memoizeOne from 'memoize-one';
 
 const View = require('../Components/View/View');
@@ -66,11 +66,28 @@ type OptionalProps<ItemT> = {|
    * your use-case.
    */
   renderItem?: ?RenderItemType<ItemT>,
-
   /**
    * Optional custom style for multi-item rows generated when numColumns > 1.
    */
   columnWrapperStyle?: ViewStyleProp,
+  // [macOS
+  /**
+   * Allows you to 'select' a row using arrow keys. The selected row will have the prop `isSelected`
+   * passed in as true to it's renderItem / ListItemComponent. You can also imperatively select a row
+   * using the `selectRowAtIndex` method. You can set the initially selected row using the
+   * `initialSelectedIndex` prop.
+   * Keyboard Behavior:
+   * - ArrowUp: Select row above current selected row
+   * - ArrowDown: Select row below current selected row
+   * - Option+ArrowUp: Select the first row
+   * - Opton+ArrowDown: Select the last 'realized' row
+   * - Home: Scroll to top of list
+   * - End: Scroll to end of list
+   *
+   * @platform macos
+   */
+  enableSelectionOnKeyPress?: ?boolean,
+  // macOS]
   /**
    * A marker property for telling the list to re-render (since it implements `PureComponent`). If
    * any of your `renderItem`, Header, Footer, etc. functions depend on anything outside of the
@@ -116,8 +133,14 @@ type OptionalProps<ItemT> = {|
    * `getItemLayout` to be implemented.
    */
   initialScrollIndex?: ?number,
+  // [macOS
   /**
-   * Reverses the direction of scroll. Uses scale transforms of -1.
+   * The initially selected row, if `enableSelectionOnKeyPress` is set.
+   */
+  initialSelectedIndex?: ?number,
+  // macOS]
+  /**
+   * Reverses the direction of scroll. Uses native inversion on macOS and scale transforms of -1 elsewhere
    */
   inverted?: ?boolean,
   /**
@@ -384,6 +407,19 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
     }
   }
 
+  // [macOS
+  /**
+   * Move selection to the specified index
+   *
+   * @platform macos
+   */
+  selectRowAtIndex(index: number) {
+    if (this._listRef) {
+      this._listRef.selectRowAtIndex(index);
+    }
+  }
+  // macOS]
+
   /**
    * Provides a handle to the underlying scroll responder.
    */
@@ -436,7 +472,16 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
          * see the error delete this comment and run Flow. */
         viewabilityConfig: this.props.viewabilityConfig,
         onViewableItemsChanged: this._createOnViewableItemsChanged(
-          this.props.onViewableItemsChanged,
+          // NOTE: we use a wrapper function to allow the actual callback to change
+          // while still keeping the function provided to native to be stable
+          (...args) => {
+            invariant(
+              this.props.onViewableItemsChanged,
+              'Changing the nullability of onViewableItemsChanged is not supported. ' +
+                'Once a function or null is supplied that cannot be changed.',
+            );
+            return this.props.onViewableItemsChanged(...args);
+          },
         ),
       });
     }
@@ -450,8 +495,9 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
         'changing the number of columns to force a fresh render of the component.',
     );
     invariant(
-      prevProps.onViewableItemsChanged === this.props.onViewableItemsChanged,
-      'Changing onViewableItemsChanged on the fly is not supported',
+      (prevProps.onViewableItemsChanged == null) ===
+        (this.props.onViewableItemsChanged == null),
+      'Changing onViewableItemsChanged nullability on the fly is not supported',
     );
     invariant(
       !deepDiffer(prevProps.viewabilityConfig, this.props.viewabilityConfig),
@@ -640,6 +686,7 @@ class FlatList<ItemT> extends React.PureComponent<Props<ItemT>, void> {
                 // $FlowFixMe[incompatible-call]
                 item: it,
                 index: index * cols + kk,
+                isSelected: info.isSelected, // [macOS]
                 separators: info.separators,
               });
               return element != null ? (

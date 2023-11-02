@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTMountingManagerDelegate.h>
 #import <React/RCTPrimitives.h>
@@ -37,12 +37,12 @@ NS_ASSUME_NONNULL_BEGIN
  * influence the intrinsic size of the view and cannot be measured using UIView/UIKit layout API.
  * Must be called on the main thead.
  */
-- (void)attachSurfaceToView:(UIView *)view surfaceId:(facebook::react::SurfaceId)surfaceId;
+- (void)attachSurfaceToView:(RCTUIView *)view surfaceId:(facebook::react::SurfaceId)surfaceId; // [macOS]
 
 /**
  * Stops designating the view as a rendering viewport of a React Native surface.
  */
-- (void)detachSurfaceFromView:(UIView *)view surfaceId:(facebook::react::SurfaceId)surfaceId;
+- (void)detachSurfaceFromView:(RCTUIView *)view surfaceId:(facebook::react::SurfaceId)surfaceId; // [macOS]
 
 /**
  * Schedule a mounting transaction to be performed on the main thread.
@@ -64,11 +64,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setIsJSResponder:(BOOL)isJSResponder
     blockNativeResponder:(BOOL)blockNativeResponder
-           forShadowView:(facebook::react::ShadowView const &)shadowView;
+           forShadowView:(const facebook::react::ShadowView &)shadowView;
 
 - (void)synchronouslyUpdateViewOnUIThread:(ReactTag)reactTag
                              changedProps:(NSDictionary *)props
-                      componentDescriptor:(facebook::react::ComponentDescriptor const &)componentDescriptor;
+                      componentDescriptor:(const facebook::react::ComponentDescriptor &)componentDescriptor;
 @end
 
 NS_ASSUME_NONNULL_END

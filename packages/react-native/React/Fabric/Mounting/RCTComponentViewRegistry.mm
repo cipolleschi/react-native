@@ -14,8 +14,7 @@
 #import <React/RCTImageComponentView.h>
 #import <React/RCTParagraphComponentView.h>
 #import <React/RCTViewComponentView.h>
-
-#import <butter/map.h>
+#import <unordered_map>
 
 using namespace facebook;
 using namespace facebook::react;
@@ -23,8 +22,8 @@ using namespace facebook::react;
 const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
 
 @implementation RCTComponentViewRegistry {
-  butter::map<Tag, RCTComponentViewDescriptor> _registry;
-  butter::map<ComponentHandle, std::vector<RCTComponentViewDescriptor>> _recyclePool;
+  std::unordered_map<Tag, RCTComponentViewDescriptor> _registry;
+  std::unordered_map<ComponentHandle, std::vector<RCTComponentViewDescriptor>> _recyclePool;
 }
 
 - (instancetype)init
@@ -32,16 +31,18 @@ const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
   if (self = [super init]) {
     _componentViewFactory = [RCTComponentViewFactory currentComponentViewFactory];
 
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(handleApplicationDidReceiveMemoryWarningNotification)
                                                  name:UIApplicationDidReceiveMemoryWarningNotification
                                                object:nil];
+#endif // [macOS]
   }
 
   return self;
 }
 
-- (RCTComponentViewDescriptor const &)dequeueComponentViewWithComponentHandle:(ComponentHandle)componentHandle
+- (const RCTComponentViewDescriptor &)dequeueComponentViewWithComponentHandle:(ComponentHandle)componentHandle
                                                                           tag:(Tag)tag
 {
   RCTAssertMainQueue();
@@ -51,7 +52,11 @@ const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
       @"RCTComponentViewRegistry: Attempt to dequeue already registered component.");
 
   auto componentViewDescriptor = [self _dequeueComponentViewWithComponentHandle:componentHandle];
+#if !TARGET_OS_OSX // [macOS]
   componentViewDescriptor.view.tag = tag;
+#else // [macOS
+  componentViewDescriptor.view.reactTag = @(tag);
+#endif // macOS]
   auto it = _registry.insert({tag, componentViewDescriptor});
   return it.first->second;
 }
@@ -66,11 +71,15 @@ const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
       _registry.find(tag) != _registry.end(), @"RCTComponentViewRegistry: Attempt to enqueue unregistered component.");
 
   _registry.erase(tag);
+#if !TARGET_OS_OSX // [macOS]
   componentViewDescriptor.view.tag = 0;
+#else // [macOS
+  componentViewDescriptor.view.reactTag = @0;
+#endif // macOS]
   [self _enqueueComponentViewWithComponentHandle:componentHandle componentViewDescriptor:componentViewDescriptor];
 }
 
-- (RCTComponentViewDescriptor const &)componentViewDescriptorWithTag:(Tag)tag
+- (const RCTComponentViewDescriptor &)componentViewDescriptorWithTag:(Tag)tag
 {
   RCTAssertMainQueue();
   auto iterator = _registry.find(tag);
@@ -78,7 +87,7 @@ const NSInteger RCTComponentViewRegistryRecyclePoolMaxSize = 1024;
   return iterator->second;
 }
 
-- (nullable UIView<RCTComponentViewProtocol> *)findComponentViewWithTag:(Tag)tag
+- (nullable RCTUIView<RCTComponentViewProtocol> *)findComponentViewWithTag:(Tag)tag // [macOS]
 {
   RCTAssertMainQueue();
   auto iterator = _registry.find(tag);

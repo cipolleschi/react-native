@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#if !TARGET_OS_OSX // [macOS]
 #import "RCTKeyCommands.h"
 
 #import <UIKit/UIKit.h>
@@ -265,3 +266,4 @@ RCT_NOT_IMPLEMENTED(-(instancetype)init)
 @end
 
 #endif
+#endif // [macOS]

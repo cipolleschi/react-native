@@ -105,10 +105,12 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
 
     _scheduler = [self _createScheduler];
 
+#if !TARGET_OS_OSX // [macOS]
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(_applicationWillTerminate)
                                                  name:UIApplicationWillTerminateNotification
                                                object:nil];
+#endif // [macOS]
   }
 
   return self;
@@ -170,10 +172,10 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
                                           initialProperties:initialProperties];
 }
 
-- (UIView *)findComponentViewWithTag_DO_NOT_USE_DEPRECATED:(NSInteger)tag
+- (RCTUIView *)findComponentViewWithTag_DO_NOT_USE_DEPRECATED:(NSInteger)tag // [macOS]
 {
-  UIView<RCTComponentViewProtocol> *componentView =
-      [_mountingManager.componentViewRegistry findComponentViewWithTag:tag];
+  RCTUIView<RCTComponentViewProtocol> *componentView =
+      [_mountingManager.componentViewRegistry findComponentViewWithTag:tag]; // [macOS]
   return componentView;
 }
 
@@ -185,8 +187,8 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
   }
 
   ReactTag tag = [reactTag integerValue];
-  UIView<RCTComponentViewProtocol> *componentView =
-      [_mountingManager.componentViewRegistry findComponentViewWithTag:tag];
+  RCTUIView<RCTComponentViewProtocol> *componentView =
+      [_mountingManager.componentViewRegistry findComponentViewWithTag:tag]; // [macOS]
   if (componentView == nil) {
     return NO; // This view probably isn't managed by Fabric
   }
@@ -201,7 +203,7 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
   return YES;
 }
 
-- (void)setupAnimationDriverWithSurfaceHandler:(facebook::react::SurfaceHandler const &)surfaceHandler
+- (void)setupAnimationDriverWithSurfaceHandler:(const facebook::react::SurfaceHandler &)surfaceHandler
 {
   [[self scheduler] setupAnimationDriver:surfaceHandler];
 }
@@ -254,7 +256,7 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
 
 - (RCTScheduler *)_createScheduler
 {
-  auto reactNativeConfig = _contextContainer->at<std::shared_ptr<ReactNativeConfig const>>("ReactNativeConfig");
+  auto reactNativeConfig = _contextContainer->at<std::shared_ptr<const ReactNativeConfig>>("ReactNativeConfig");
 
   if (reactNativeConfig && reactNativeConfig->getBool("rn_convergence:dispatch_pointer_events")) {
     RCTSetDispatchW3CPointerEvents(YES);
@@ -262,6 +264,10 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
 
   if (reactNativeConfig && reactNativeConfig->getBool("react_fabric:enable_cpp_props_iterator_setter_ios")) {
     CoreFeatures::enablePropIteratorSetter = true;
+  }
+
+  if (reactNativeConfig && reactNativeConfig->getBool("rn_convergence:dispatch_pointer_events")) {
+    RCTSetDispatchW3CPointerEvents(YES);
   }
 
   if (reactNativeConfig && reactNativeConfig->getBool("react_fabric:use_native_state")) {
@@ -284,9 +290,17 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
     CoreFeatures::disableScrollEventThrottleRequirement = true;
   }
 
+  if (reactNativeConfig && reactNativeConfig->getBool("react_fabric:enable_default_async_batched_priority")) {
+    CoreFeatures::enableDefaultAsyncBatchedPriority = true;
+  }
+
+  if (reactNativeConfig && reactNativeConfig->getBool("react_fabric:enable_cloneless_state_progression")) {
+    CoreFeatures::enableClonelessStateProgression = true;
+  }
+
   auto componentRegistryFactory =
       [factory = wrapManagedObject(_mountingManager.componentViewRegistry.componentViewFactory)](
-          EventDispatcher::Weak const &eventDispatcher, ContextContainer::Shared const &contextContainer) {
+          const EventDispatcher::Weak &eventDispatcher, const ContextContainer::Shared &contextContainer) {
         return [(RCTComponentViewFactory *)unwrapManagedObject(factory)
             createComponentDescriptorRegistryWithParameters:{eventDispatcher, contextContainer}];
       };
@@ -309,7 +323,7 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
   toolbox.bridgelessBindingsExecutor = _bridgelessBindingsExecutor;
 
   toolbox.mainRunLoopObserverFactory = [](RunLoopObserver::Activity activities,
-                                          RunLoopObserver::WeakOwner const &owner) {
+                                          const RunLoopObserver::WeakOwner &owner) {
     return std::make_unique<MainRunLoopObserver>(activities, owner);
   };
 
@@ -318,14 +332,14 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
   }
 
   toolbox.synchronousEventBeatFactory =
-      [runtimeExecutor, runtimeScheduler = runtimeScheduler](EventBeat::SharedOwnerBox const &ownerBox) {
+      [runtimeExecutor, runtimeScheduler = runtimeScheduler](const EventBeat::SharedOwnerBox &ownerBox) {
         auto runLoopObserver =
             std::make_unique<MainRunLoopObserver const>(RunLoopObserver::Activity::BeforeWaiting, ownerBox->owner);
         return std::make_unique<SynchronousEventBeat>(std::move(runLoopObserver), runtimeExecutor, runtimeScheduler);
       };
 
   toolbox.asynchronousEventBeatFactory =
-      [runtimeExecutor](EventBeat::SharedOwnerBox const &ownerBox) -> std::unique_ptr<EventBeat> {
+      [runtimeExecutor](const EventBeat::SharedOwnerBox &ownerBox) -> std::unique_ptr<EventBeat> {
     auto runLoopObserver =
         std::make_unique<MainRunLoopObserver const>(RunLoopObserver::Activity::BeforeWaiting, ownerBox->owner);
     return std::make_unique<AsynchronousEventBeat>(std::move(runLoopObserver), runtimeExecutor);
@@ -369,9 +383,9 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
   [_mountingManager scheduleTransaction:mountingCoordinator];
 }
 
-- (void)schedulerDidDispatchCommand:(ShadowView const &)shadowView
-                        commandName:(std::string const &)commandName
-                               args:(folly::dynamic const &)args
+- (void)schedulerDidDispatchCommand:(const ShadowView &)shadowView
+                        commandName:(const std::string &)commandName
+                               args:(const folly::dynamic &)args
 {
   ReactTag tag = shadowView.tag;
   NSString *commandStr = [[NSString alloc] initWithUTF8String:commandName.c_str()];
@@ -391,7 +405,7 @@ static BackgroundExecutor RCTGetBackgroundExecutor()
 
 - (void)schedulerDidSetIsJSResponder:(BOOL)isJSResponder
                 blockNativeResponder:(BOOL)blockNativeResponder
-                       forShadowView:(facebook::react::ShadowView const &)shadowView;
+                       forShadowView:(const facebook::react::ShadowView &)shadowView;
 {
   [_mountingManager setIsJSResponder:isJSResponder blockNativeResponder:blockNativeResponder forShadowView:shadowView];
 }

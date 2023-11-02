@@ -9,7 +9,6 @@
 
 #import <React/RCTAssert.h>
 #import <React/RCTUtils.h>
-#import <UIKit/UIKit.h>
 
 using namespace facebook::react;
 
@@ -46,8 +45,13 @@ RCT_EXPORT_MODULE()
 {
   __block NSDictionary *constants;
   RCTUnsafeExecuteOnMainQueueSync(^{
+#if !TARGET_OS_OSX // [macOS]
     UIScreen *mainScreen = UIScreen.mainScreen;
     CGSize screenSize = mainScreen.bounds.size;
+#else // [macOS
+    NSScreen *mainScreen = NSScreen.mainScreen;
+    CGSize screenSize = mainScreen.frame.size;
+#endif // macOS]
 
     constants = @{
       @"const1" : @YES,

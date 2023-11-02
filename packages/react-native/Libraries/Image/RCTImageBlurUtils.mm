@@ -7,11 +7,16 @@
 
 #import <React/RCTImageBlurUtils.h>
 
+#import <React/RCTUIKit.h> // [macOS]
+#import <React/RCTUtils.h> // [macOS]
+
 UIImage *RCTBlurredImageWithRadius(UIImage *inputImage, CGFloat radius)
 {
-  CGImageRef imageRef = inputImage.CGImage;
-  CGFloat imageScale = inputImage.scale;
+  CGImageRef imageRef = UIImageGetCGImageRef(inputImage); // [macOS]
+  CGFloat imageScale = UIImageGetScale(inputImage); // [macOS]
+#if !TARGET_OS_OSX // [macOS]
   UIImageOrientation imageOrientation = inputImage.imageOrientation;
+#endif // [macOS]
 
   // Image must be nonzero size
   if (CGImageGetWidth(imageRef) * CGImageGetHeight(imageRef) == 0) {
@@ -20,6 +25,7 @@ UIImage *RCTBlurredImageWithRadius(UIImage *inputImage, CGFloat radius)
 
   // convert to ARGB if it isn't
   if (CGImageGetBitsPerPixel(imageRef) != 32 || !((CGImageGetBitmapInfo(imageRef) & kCGBitmapAlphaInfoMask))) {
+#if !TARGET_OS_OSX // [macOS]
     UIGraphicsImageRendererFormat *const rendererFormat = [UIGraphicsImageRendererFormat defaultFormat];
     rendererFormat.scale = inputImage.scale;
     UIGraphicsImageRenderer *const renderer = [[UIGraphicsImageRenderer alloc] initWithSize:inputImage.size
@@ -28,6 +34,12 @@ UIImage *RCTBlurredImageWithRadius(UIImage *inputImage, CGFloat radius)
     imageRef = [renderer imageWithActions:^(UIGraphicsImageRendererContext *_Nonnull context) {
                  [inputImage drawAtPoint:CGPointZero];
                }].CGImage;
+#else // [macOS
+    UIGraphicsBeginImageContextWithOptions(inputImage.size, NO, imageScale);
+    [inputImage drawAtPoint:CGPointZero fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0];
+    imageRef = (CGImageRef)CFAutorelease(CGBitmapContextCreateImage(UIGraphicsGetCurrentContext()));
+    UIGraphicsEndImageContext();
+#endif // macOS]
   }
 
   vImage_Buffer buffer1, buffer2;
@@ -92,7 +104,11 @@ UIImage *RCTBlurredImageWithRadius(UIImage *inputImage, CGFloat radius)
 
   // create image from context
   imageRef = CGBitmapContextCreateImage(ctx);
+#if !TARGET_OS_OSX // [macOS]
   UIImage *outputImage = [UIImage imageWithCGImage:imageRef scale:imageScale orientation:imageOrientation];
+#else // [macOS
+  NSImage *outputImage = [[NSImage alloc] initWithCGImage:imageRef size:inputImage.size];
+#endif // macOS]
   CGImageRelease(imageRef);
   CGContextRelease(ctx);
   free(buffer1.data);

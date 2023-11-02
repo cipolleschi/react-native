@@ -16,6 +16,7 @@ const React = require('react');
 
 const {
   Image,
+  Platform, // [macOS]
   StyleSheet,
   Text,
   View,
@@ -1318,7 +1319,7 @@ exports.examples = [
         />
       );
     },
-    platform: 'ios',
+    platform: ['ios', 'macos'], // [macOS]
   },
   {
     title: 'Base64 image',
@@ -1373,7 +1374,8 @@ exports.examples = [
           <Image
             source={{
               uri: 'ImageInBundle',
-              bundle: 'RNTesterBundle',
+              bundle:
+                'RNTesterBundle' + (Platform.OS === 'macos' ? '-macOS' : ''),
               width: 100,
               height: 100,
             }}
@@ -1382,7 +1384,8 @@ exports.examples = [
           <Image
             source={{
               uri: 'ImageInAssetCatalog',
-              bundle: 'RNTesterBundle',
+              bundle:
+                'RNTesterBundle' + (Platform.OS === 'macos' ? '-macOS' : ''),
               width: 100,
               height: 100,
             }}
@@ -1391,7 +1394,7 @@ exports.examples = [
         </View>
       );
     },
-    platform: 'ios',
+    platform: ['ios', 'macos'], // [macOS]
   },
   {
     title: 'Blur Radius',

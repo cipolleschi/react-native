@@ -7,7 +7,7 @@
 
 #import <React/RCTFrameAnimation.h>
 
-#import <UIKit/UIKit.h>
+#import <React/RCTUIKit.h> // [macOS]
 
 #import <React/RCTConvert.h>
 #import <React/RCTDefines.h>
