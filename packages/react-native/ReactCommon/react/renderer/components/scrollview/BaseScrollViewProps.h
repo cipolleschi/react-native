@@ -63,6 +63,7 @@ class BaseScrollViewProps : public ViewProps {
   bool showsVerticalScrollIndicator{true};
   bool persistentScrollbar{false};
   bool horizontal{false};
+  bool padsContentForSafeArea{false};
   Float scrollEventThrottle{};
   Float zoomScale{1.0f};
   EdgeInsets contentInset{};
